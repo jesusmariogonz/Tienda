@@ -20,13 +20,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Imagen demasiado grande (máx. 8MB)" }, { status: 400 });
   }
 
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    return NextResponse.json(
-      { error: "Falta configurar el almacenamiento de imágenes (Blob) en el servidor" },
-      { status: 500 },
-    );
-  }
-
   try {
     const blob = await put(`productos/${Date.now()}-${file.name}`, file, {
       access: "public",
