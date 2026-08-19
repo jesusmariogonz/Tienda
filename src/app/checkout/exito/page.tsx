@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getOrderById } from "@/server/services/orders";
 import { formatPrice } from "@/lib/money";
+import { ClearCartOnMount } from "@/components/clear-cart-on-mount";
 
 export default async function CheckoutSuccessPage({
   searchParams,
@@ -12,6 +13,7 @@ export default async function CheckoutSuccessPage({
 
   return (
     <main className="flex-1 px-4 py-16 text-center sm:px-6">
+      <ClearCartOnMount />
       <h1 className="text-xl font-semibold">¡Gracias por tu compra!</h1>
       {order ? (
         <div className="mt-4 text-sm text-zinc-600">
