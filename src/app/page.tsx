@@ -3,6 +3,11 @@ import Link from "next/link";
 import { listActiveProducts } from "@/server/services/catalog";
 import { formatPrice } from "@/lib/money";
 
+// Render on every request rather than at build time: the catalog changes
+// from the admin panel, and build-time prerendering would also make the
+// build fail whenever it runs before the database has been migrated.
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
   const products = await listActiveProducts();
 
