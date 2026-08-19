@@ -36,7 +36,7 @@ See `prisma/schema.prisma`. Key entities:
 - [x] Cart + checkout (Stripe + Mercado Pago) — inventory is decremented via webhook once payment is confirmed
 - [x] Admin panel: single-admin login, product CRUD, inventory with low-stock alerts, movement history
 - [x] Mini-POS (counter sales) — record-only, shares inventory with the storefront
-- [ ] Reports (combined sales, top products, revenue, channel comparison)
+- [x] Reports (combined sales, top products, revenue, channel comparison)
 
 ## Admin panel
 
@@ -46,3 +46,4 @@ Sign in at `/admin/login` with the credentials seeded from `ADMIN_EMAIL`/`ADMIN_
 - `/admin/inventario` — current stock per variant with low-stock rows highlighted, plus a quick manual adjustment (restock or correction) that's logged as an `InventoryMovement`.
 - `/admin/movimientos` — full inventory audit trail (restocks, online sales, POS sales, manual adjustments, returns).
 - `/admin/pos` — mini-POS for counter sales: search a product, pick variant/quantity, register the sale. It does not process any payment — it only records the sale and decrements the same `Inventory` the storefront uses.
+- `/admin/reportes` — combined sales (online + counter) by day/week/month, top-selling products, total revenue and online-vs-counter channel comparison. Online revenue only counts `PAID` orders.
