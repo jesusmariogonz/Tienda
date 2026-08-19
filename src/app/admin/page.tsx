@@ -2,6 +2,7 @@ import Link from "next/link";
 import { listLowStock } from "@/server/services/inventory";
 import { getDashboardStats, listPendingOrders, listRecentActivity } from "@/server/services/dashboard";
 import { formatPrice } from "@/lib/money";
+import { dismissPendingOrderAction, dismissAllPendingOrdersAction } from "./actions";
 
 const MOVEMENT_LABELS: Record<string, string> = {
   RESTOCK: "Restock",
@@ -93,9 +94,24 @@ export default async function AdminDashboard() {
 
       {pendingOrders.length > 0 && (
         <div>
-          <h2 className="mb-2 text-sm font-medium">
-            Carritos abandonados ({pendingOrders.length})
-          </h2>
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-sm font-medium">
+              Carritos abandonados ({pendingOrders.length})
+            </h2>
+            <div className="flex items-center gap-3">
+              <Link
+                href="/admin/reportes/carritos-abandonados"
+                className="text-xs text-zinc-600 underline"
+              >
+                Ver historial / exportar
+              </Link>
+              <form action={dismissAllPendingOrdersAction}>
+                <button type="submit" className="text-xs text-red-600 underline">
+                  Descartar todos
+                </button>
+              </form>
+            </div>
+          </div>
           <p className="mb-2 text-xs text-zinc-500">
             Órdenes que se iniciaron en checkout pero nunca se confirmaron pagadas.
           </p>
@@ -123,6 +139,11 @@ export default async function AdminDashboard() {
                     </li>
                   ))}
                 </ul>
+                <form action={dismissPendingOrderAction.bind(null, order.id)} className="mt-2">
+                  <button type="submit" className="text-xs text-zinc-500 underline">
+                    Descartar
+                  </button>
+                </form>
               </div>
             ))}
           </div>

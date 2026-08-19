@@ -77,6 +77,36 @@ export async function getDashboardStats() {
   };
 }
 
+/** "Discards" an abandoned cart by cancelling the order rather than
+ * deleting it, so it drops off the dashboard but stays in the abandoned
+ * carts report/export. */
+export function dismissPendingOrder(orderId: string) {
+  return prisma.order.updateMany({
+    where: { id: orderId, status: "PENDING" },
+    data: { status: "CANCELLED" },
+  });
+}
+
+export function dismissAllPendingOrders() {
+  return prisma.order.updateMany({
+    where: { status: "PENDING" },
+    data: { status: "CANCELLED" },
+  });
+}
+
+/** Orders that were started at checkout but never paid — PENDING (still
+ * open) or CANCELLED (dismissed from the dashboard) — for follow-up. */
+export function listAbandonedCarts(from: Date, to: Date) {
+  return prisma.order.findMany({
+    where: {
+      status: { in: ["PENDING", "CANCELLED"] },
+      createdAt: { gte: from, lte: to },
+    },
+    include: { items: { include: { variant: { include: { product: true } } } } },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
 export function listRecentActivity(limit = 8) {
   return prisma.inventoryMovement.findMany({
     include: { variant: { include: { product: true } } },

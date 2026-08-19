@@ -90,6 +90,12 @@ export default async function ReportsPage({
           >
             Exportar a Excel
           </a>
+          <Link
+            href="/admin/reportes/carritos-abandonados"
+            className="rounded-full border border-zinc-300 px-4 py-2 text-sm font-medium"
+          >
+            Carritos abandonados
+          </Link>
         </div>
       </div>
 
