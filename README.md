@@ -34,6 +34,14 @@ See `prisma/schema.prisma`. Key entities:
 - [x] Storefront: catalog listing
 - [x] Product detail page with size/color selector
 - [x] Cart + checkout (Stripe + Mercado Pago) — inventory is decremented via webhook once payment is confirmed
-- [ ] Admin panel: auth, product CRUD, inventory & low-stock alerts, movement history
+- [x] Admin panel: single-admin login, product CRUD, inventory with low-stock alerts, movement history
 - [ ] Mini-POS (counter sales)
 - [ ] Reports (combined sales, top products, revenue, channel comparison)
+
+## Admin panel
+
+Sign in at `/admin/login` with the credentials seeded from `ADMIN_EMAIL`/`ADMIN_PASSWORD` (see `prisma/seed.ts`). `/admin/*` is protected by NextAuth middleware (`src/middleware.ts` + `src/auth.config.ts`); only one admin user is supported by design.
+
+- `/admin/productos` — list, create, edit and deactivate products, including variants (size/color) and initial stock per variant.
+- `/admin/inventario` — current stock per variant with low-stock rows highlighted, plus a quick manual adjustment (restock or correction) that's logged as an `InventoryMovement`.
+- `/admin/movimientos` — full inventory audit trail (restocks, online sales, POS sales, manual adjustments, returns).
