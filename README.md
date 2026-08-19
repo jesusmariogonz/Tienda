@@ -32,8 +32,8 @@ See `prisma/schema.prisma`. Key entities:
 
 - [x] Project scaffold + data model (products, variants, inventory, orders, POS)
 - [x] Storefront: catalog listing
-- [ ] Product detail page with size/color selector
-- [ ] Cart + checkout (Stripe + Mercado Pago)
+- [x] Product detail page with size/color selector
+- [x] Cart + checkout (Stripe + Mercado Pago) — inventory is decremented via webhook once payment is confirmed
 - [ ] Admin panel: auth, product CRUD, inventory & low-stock alerts, movement history
 - [ ] Mini-POS (counter sales)
 - [ ] Reports (combined sales, top products, revenue, channel comparison)
