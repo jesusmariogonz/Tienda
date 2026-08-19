@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { runSeed } from "@/server/services/seed";
 
 // Temporary, token-protected endpoint used once to seed a fresh production
-// database from an environment (like a sandboxed CI agent) that can reach
-// this deployment over HTTPS but not the database directly over TCP.
+// database by opening a URL (?token=...) in a browser, for setups where
+// there's no direct network path to run the seed script otherwise.
 // Remove this route once the initial seed has run.
-export async function POST(req: NextRequest) {
-  const token = req.headers.get("x-seed-token");
+async function handle(req: NextRequest) {
+  const token =
+    req.headers.get("x-seed-token") ?? req.nextUrl.searchParams.get("token");
   if (!process.env.SEED_TOKEN || token !== process.env.SEED_TOKEN) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
@@ -14,3 +15,6 @@ export async function POST(req: NextRequest) {
   await runSeed();
   return NextResponse.json({ ok: true });
 }
+
+export const GET = handle;
+export const POST = handle;
