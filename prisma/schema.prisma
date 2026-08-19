@@ -1,0 +1,213 @@
+// Prisma schema for the store: products, variants, inventory, sales (online + POS), admin.
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Auth / Admin ----------
+
+enum UserRole {
+  ADMIN
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  role         UserRole @default(ADMIN)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  posSales          PosSale[]
+  inventoryMovements InventoryMovement[]
+}
+
+// ---------- Catalog ----------
+
+model Category {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  slug      String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  products  Product[]
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  basePrice   Decimal  @db.Decimal(10, 2)
+  active      Boolean  @default(true)
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  images   ProductImage[]
+  variants ProductVariant[]
+
+  @@index([categoryId])
+}
+
+model ProductImage {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url       String
+  alt       String?
+  position  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([productId])
+}
+
+model ProductVariant {
+  id        String   @id @default(cuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  sku       String   @unique
+  size      String
+  color     String
+  price     Decimal? @db.Decimal(10, 2) // overrides Product.basePrice when set
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  inventory           Inventory?
+  inventoryMovements  InventoryMovement[]
+  orderItems          OrderItem[]
+  posSaleItems        PosSaleItem[]
+
+  @@unique([productId, size, color])
+  @@index([productId])
+}
+
+// ---------- Inventory ----------
+
+model Inventory {
+  id              String         @id @default(cuid())
+  variantId       String         @unique
+  variant         ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  quantity        Int            @default(0)
+  lowStockThreshold Int          @default(5)
+  updatedAt       DateTime       @updatedAt
+}
+
+enum InventoryMovementType {
+  RESTOCK
+  ONLINE_SALE
+  POS_SALE
+  ADJUSTMENT
+  RETURN
+}
+
+model InventoryMovement {
+  id         String                 @id @default(cuid())
+  variantId  String
+  variant    ProductVariant         @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  type       InventoryMovementType
+  quantity   Int                    // positive = stock in, negative = stock out
+  note       String?
+  userId     String?
+  user       User?                  @relation(fields: [userId], references: [id])
+  orderId    String?
+  order      Order?                 @relation(fields: [orderId], references: [id])
+  posSaleId  String?
+  posSale    PosSale?               @relation(fields: [posSaleId], references: [id])
+  createdAt  DateTime               @default(now())
+
+  @@index([variantId])
+  @@index([createdAt])
+}
+
+// ---------- Online Orders / Payments ----------
+
+enum OrderStatus {
+  PENDING
+  PAID
+  FULFILLED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentProvider {
+  STRIPE
+  MERCADO_PAGO
+}
+
+model Order {
+  id              String          @id @default(cuid())
+  orderNumber     String          @unique
+  status          OrderStatus     @default(PENDING)
+  customerEmail   String
+  customerName    String?
+  customerPhone   String?
+  shippingAddress Json?
+  subtotal        Decimal         @db.Decimal(10, 2)
+  shippingCost    Decimal         @default(0) @db.Decimal(10, 2)
+  total           Decimal         @db.Decimal(10, 2)
+  currency        String          @default("MXN")
+  paymentProvider PaymentProvider?
+  paymentRef      String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  items               OrderItem[]
+  inventoryMovements  InventoryMovement[]
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id        String         @id @default(cuid())
+  orderId   String
+  order     Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  variantId String
+  variant   ProductVariant @relation(fields: [variantId], references: [id])
+  quantity  Int
+  unitPrice Decimal        @db.Decimal(10, 2)
+
+  @@index([orderId])
+  @@index([variantId])
+}
+
+// ---------- POS (in-store, record-only) ----------
+
+model PosSale {
+  id        String   @id @default(cuid())
+  saleNumber String  @unique
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  total     Decimal  @db.Decimal(10, 2)
+  note      String?
+  createdAt DateTime @default(now())
+
+  items               PosSaleItem[]
+  inventoryMovements  InventoryMovement[]
+
+  @@index([createdAt])
+}
+
+model PosSaleItem {
+  id        String         @id @default(cuid())
+  posSaleId String
+  posSale   PosSale        @relation(fields: [posSaleId], references: [id], onDelete: Cascade)
+  variantId String
+  variant   ProductVariant @relation(fields: [variantId], references: [id])
+  quantity  Int
+  unitPrice Decimal        @db.Decimal(10, 2)
+
+  @@index([posSaleId])
+  @@index([variantId])
+}
