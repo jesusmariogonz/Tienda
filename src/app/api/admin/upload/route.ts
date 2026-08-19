@@ -20,10 +20,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Imagen demasiado grande (máx. 8MB)" }, { status: 400 });
   }
 
-  const blob = await put(`productos/${Date.now()}-${file.name}`, file, {
-    access: "public",
-    addRandomSuffix: true,
-  });
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    return NextResponse.json(
+      { error: "Falta configurar el almacenamiento de imágenes (Blob) en el servidor" },
+      { status: 500 },
+    );
+  }
 
-  return NextResponse.json({ url: blob.url });
+  try {
+    const blob = await put(`productos/${Date.now()}-${file.name}`, file, {
+      access: "public",
+      addRandomSuffix: true,
+    });
+    return NextResponse.json({ url: blob.url });
+  } catch (err) {
+    console.error("[upload] failed:", err);
+    const message = err instanceof Error ? err.message : "No se pudo subir la imagen";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }

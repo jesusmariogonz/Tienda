@@ -27,8 +27,10 @@ export function AdminImageUploader({
           method: "POST",
           body: formData,
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error ?? "Error al subir imagen");
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !data) {
+          throw new Error(data?.error ?? `Error al subir imagen (${res.status})`);
+        }
         uploaded.push(data.url);
       }
       setUrls((prev) => [...prev, ...uploaded]);
