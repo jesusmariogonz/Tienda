@@ -7,8 +7,13 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // Migrations need a direct (non-pooled) connection — pgbouncer's
+  // transaction pooling mode doesn't support the advisory locks
+  // `prisma migrate` relies on. Falls back to DATABASE_URL locally where
+  // there's no pooler in front of Postgres.
+  directUrl = env("DIRECT_URL")
 }
 
 // ---------- Auth / Admin ----------
