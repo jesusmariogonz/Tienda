@@ -25,19 +25,41 @@ function formatPeriodLabel(iso: string, granularity: Granularity) {
   return date.toLocaleDateString("es-MX", { day: "2-digit", month: "short" });
 }
 
+function toDateInputValue(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
 export default async function ReportsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ range?: string }>;
+  searchParams: Promise<{ range?: string; from?: string; to?: string }>;
 }) {
-  const { range } = await searchParams;
-  const option = RANGE_OPTIONS.find((r) => r.key === range) ?? RANGE_OPTIONS[1];
+  const { range, from: fromParam, to: toParam } = await searchParams;
 
-  const to = new Date();
-  const from = new Date(to.getTime() - option.days * 24 * 60 * 60 * 1000);
+  let from: Date;
+  let to: Date;
+  let granularity: Granularity;
+  let activeKey: string | null;
+  let exportQuery: string;
+
+  if (fromParam && toParam) {
+    from = new Date(`${fromParam}T00:00:00`);
+    to = new Date(`${toParam}T23:59:59`);
+    const spanDays = (to.getTime() - from.getTime()) / (24 * 60 * 60 * 1000);
+    granularity = spanDays <= 31 ? "day" : spanDays <= 180 ? "week" : "month";
+    activeKey = null;
+    exportQuery = `from=${fromParam}&to=${toParam}`;
+  } else {
+    const option = RANGE_OPTIONS.find((r) => r.key === range) ?? RANGE_OPTIONS[1];
+    to = new Date();
+    from = new Date(to.getTime() - option.days * 24 * 60 * 60 * 1000);
+    granularity = option.granularity;
+    activeKey = option.key;
+    exportQuery = `range=${option.key}`;
+  }
 
   const [byPeriod, topProducts, summary] = await Promise.all([
-    getSalesByPeriod(from, to, option.granularity),
+    getSalesByPeriod(from, to, granularity),
     getTopProducts(from, to, 10),
     getChannelSummary(from, to),
   ]);
@@ -55,7 +77,7 @@ export default async function ReportsPage({
                 key={r.key}
                 href={`/admin/reportes?range=${r.key}`}
                 className={`rounded-full px-3 py-1.5 text-sm ${
-                  r.key === option.key ? "bg-black text-white" : "text-zinc-600"
+                  r.key === activeKey ? "bg-black text-white" : "text-zinc-600"
                 }`}
               >
                 {r.label}
@@ -63,13 +85,46 @@ export default async function ReportsPage({
             ))}
           </div>
           <a
-            href={`/api/admin/reportes/export?range=${option.key}`}
+            href={`/api/admin/reportes/export?${exportQuery}`}
             className="rounded-full border border-zinc-300 px-4 py-2 text-sm font-medium"
           >
             Exportar a Excel
           </a>
         </div>
       </div>
+
+      <form
+        action="/admin/reportes"
+        className="flex flex-wrap items-end gap-3 rounded-lg border border-zinc-200 p-3"
+      >
+        <div>
+          <label className="mb-1 block text-xs text-zinc-500">Desde</label>
+          <input
+            type="date"
+            name="from"
+            defaultValue={fromParam ?? toDateInputValue(from)}
+            className="rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs text-zinc-500">Hasta</label>
+          <input
+            type="date"
+            name="to"
+            defaultValue={toParam ?? toDateInputValue(to)}
+            className="rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
+          />
+        </div>
+        <button
+          type="submit"
+          className="rounded-md bg-black px-4 py-1.5 text-sm font-medium text-white"
+        >
+          Ver
+        </button>
+        <p className="text-xs text-zinc-400">
+          Elige el mismo día en ambos campos para ver un solo día.
+        </p>
+      </form>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div className="rounded-lg border border-zinc-200 p-4">
@@ -115,7 +170,7 @@ export default async function ReportsPage({
                   />
                 </div>
                 <span className="text-[10px] text-zinc-500">
-                  {formatPeriodLabel(p.period, option.granularity)}
+                  {formatPeriodLabel(p.period, granularity)}
                 </span>
               </div>
             ))}

@@ -24,14 +24,34 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
-  const rangeKey = req.nextUrl.searchParams.get("range") ?? "30d";
-  const option = RANGE_OPTIONS[rangeKey] ?? RANGE_OPTIONS["30d"];
+  const fromParam = req.nextUrl.searchParams.get("from");
+  const toParam = req.nextUrl.searchParams.get("to");
 
-  const to = new Date();
-  const from = new Date(to.getTime() - option.days * 24 * 60 * 60 * 1000);
+  let from: Date;
+  let to: Date;
+  let granularity: Granularity;
+  let label: string;
+  let fileSuffix: string;
+
+  if (fromParam && toParam) {
+    from = new Date(`${fromParam}T00:00:00`);
+    to = new Date(`${toParam}T23:59:59`);
+    const spanDays = (to.getTime() - from.getTime()) / (24 * 60 * 60 * 1000);
+    granularity = spanDays <= 31 ? "day" : spanDays <= 180 ? "week" : "month";
+    label = fromParam === toParam ? fromParam : `${fromParam} a ${toParam}`;
+    fileSuffix = fromParam === toParam ? fromParam : `${fromParam}_${toParam}`;
+  } else {
+    const rangeKey = req.nextUrl.searchParams.get("range") ?? "30d";
+    const option = RANGE_OPTIONS[rangeKey] ?? RANGE_OPTIONS["30d"];
+    to = new Date();
+    from = new Date(to.getTime() - option.days * 24 * 60 * 60 * 1000);
+    granularity = option.granularity;
+    label = option.label;
+    fileSuffix = rangeKey;
+  }
 
   const [byPeriod, topProducts, summary] = await Promise.all([
-    getSalesByPeriod(from, to, option.granularity),
+    getSalesByPeriod(from, to, granularity),
     getTopProducts(from, to, 50),
     getChannelSummary(from, to),
   ]);
@@ -46,7 +66,7 @@ export async function GET(req: NextRequest) {
     { header: "Valor", key: "value", width: 20 },
   ];
   summarySheet.addRows([
-    { metric: "Periodo", value: option.label },
+    { metric: "Periodo", value: label },
     { metric: "Ingresos totales", value: summary.totalRevenue },
     { metric: "Ingresos online", value: summary.onlineRevenue },
     { metric: "Órdenes online", value: summary.onlineOrders },
@@ -87,7 +107,7 @@ export async function GET(req: NextRequest) {
     headers: {
       "Content-Type":
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "Content-Disposition": `attachment; filename="reporte-${rangeKey}.xlsx"`,
+      "Content-Disposition": `attachment; filename="reporte-${fileSuffix}.xlsx"`,
     },
   });
 }
