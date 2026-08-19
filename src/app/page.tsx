@@ -1,48 +1,103 @@
 import Image from "next/image";
 import Link from "next/link";
-import { listActiveProducts } from "@/server/services/catalog";
+import { listActiveProducts, listCategoriesWithProducts } from "@/server/services/catalog";
 import { formatPrice } from "@/lib/money";
+import { appName } from "@/lib/config";
+import { CatalogFilters } from "@/components/catalog-filters";
 
 // Render on every request rather than at build time: the catalog changes
 // from the admin panel, and build-time prerendering would also make the
 // build fail whenever it runs before the database has been migrated.
 export const dynamic = "force-dynamic";
 
-export default async function Home() {
-  const products = await listActiveProducts();
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ category?: string; q?: string; sort?: string }>;
+}) {
+  const params = await searchParams;
+  const sort =
+    params.sort === "precio-asc" || params.sort === "precio-desc"
+      ? params.sort
+      : "recientes";
+
+  const [products, categories] = await Promise.all([
+    listActiveProducts({ category: params.category, q: params.q, sort }),
+    listCategoriesWithProducts(),
+  ]);
 
   return (
-    <main className="flex-1 px-4 py-8 sm:px-6">
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-        {products.map((product) => {
-          const image = product.images[0];
-          const price = Number(product.basePrice);
-          return (
-            <Link
-              key={product.id}
-              href={`/productos/${product.slug}`}
-              className="group flex flex-col"
-            >
-              <div className="relative aspect-[4/5] w-full overflow-hidden bg-zinc-100">
-                {image && (
-                  <Image
-                    src={image.url}
-                    alt={image.alt ?? product.name}
-                    fill
-                    className="object-cover transition-transform group-hover:scale-105"
-                    sizes="(max-width: 640px) 50vw, 25vw"
-                    unoptimized
-                  />
-                )}
-              </div>
-              <div className="mt-2 space-y-0.5">
-                <p className="text-sm font-medium">{product.name}</p>
-                <p className="text-sm text-zinc-500">{formatPrice(price)}</p>
-              </div>
-            </Link>
-          );
-        })}
+    <div className="flex flex-col">
+      <section className="flex flex-col items-start justify-center gap-4 bg-black px-4 py-16 sm:px-6 sm:py-24">
+        <h1 className="max-w-2xl text-4xl leading-[0.95] font-extrabold tracking-tighter text-white uppercase italic sm:text-6xl">
+          Entrena duro,
+          <br />
+          viste más duro
+        </h1>
+        <p className="max-w-md text-sm text-zinc-400 sm:text-base">
+          Ropa deportiva y streetwear hecha para moverse contigo.
+        </p>
+        <Link
+          href="#catalogo"
+          className="mt-2 rounded-full bg-white px-6 py-3 text-sm font-bold tracking-wide text-black uppercase"
+        >
+          Ver colección
+        </Link>
+      </section>
+
+      <div id="catalogo">
+        <CatalogFilters categories={categories} />
       </div>
-    </main>
+
+      <main className="flex-1 px-4 py-8 sm:px-6">
+        {products.length === 0 ? (
+          <p className="py-16 text-center text-sm text-zinc-500">
+            No encontramos productos con esos filtros.
+          </p>
+        ) : (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4">
+            {products.map((product) => {
+              const image = product.images[0];
+              const price = Number(product.basePrice);
+              return (
+                <Link
+                  key={product.id}
+                  href={`/productos/${product.slug}`}
+                  className="group flex flex-col"
+                >
+                  <div className="relative aspect-[4/5] w-full overflow-hidden bg-zinc-100">
+                    {image && (
+                      <Image
+                        src={image.url}
+                        alt={image.alt ?? product.name}
+                        fill
+                        className="object-cover transition-transform duration-300 group-hover:scale-105"
+                        sizes="(max-width: 640px) 50vw, 25vw"
+                        unoptimized
+                      />
+                    )}
+                  </div>
+                  <div className="mt-2.5 space-y-0.5">
+                    {product.category && (
+                      <p className="text-[10px] font-semibold tracking-widest text-zinc-400 uppercase">
+                        {product.category.name}
+                      </p>
+                    )}
+                    <p className="text-sm font-bold tracking-tight uppercase">
+                      {product.name}
+                    </p>
+                    <p className="text-sm text-zinc-500">{formatPrice(price)}</p>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </main>
+
+      <footer className="border-t border-zinc-200 px-4 py-8 text-center text-xs text-zinc-400 sm:px-6">
+        {appName} — todos los derechos reservados
+      </footer>
+    </div>
   );
 }

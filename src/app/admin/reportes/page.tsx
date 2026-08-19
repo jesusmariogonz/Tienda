@@ -48,18 +48,26 @@ export default async function ReportsPage({
     <div className="flex flex-col gap-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-xl font-semibold">Reportes</h1>
-        <div className="flex gap-1 rounded-full border border-zinc-200 p-1">
-          {RANGE_OPTIONS.map((r) => (
-            <Link
-              key={r.key}
-              href={`/admin/reportes?range=${r.key}`}
-              className={`rounded-full px-3 py-1.5 text-sm ${
-                r.key === option.key ? "bg-black text-white" : "text-zinc-600"
-              }`}
-            >
-              {r.label}
-            </Link>
-          ))}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex gap-1 rounded-full border border-zinc-200 p-1">
+            {RANGE_OPTIONS.map((r) => (
+              <Link
+                key={r.key}
+                href={`/admin/reportes?range=${r.key}`}
+                className={`rounded-full px-3 py-1.5 text-sm ${
+                  r.key === option.key ? "bg-black text-white" : "text-zinc-600"
+                }`}
+              >
+                {r.label}
+              </Link>
+            ))}
+          </div>
+          <a
+            href={`/api/admin/reportes/export?range=${option.key}`}
+            className="rounded-full border border-zinc-300 px-4 py-2 text-sm font-medium"
+          >
+            Exportar a Excel
+          </a>
         </div>
       </div>
 

@@ -25,10 +25,7 @@ function parseInput(formData: FormData): ProductInput {
     lowStockThreshold: Number(thresholds[i] || 5),
   }));
 
-  const imageUrls = (formData.get("imageUrls") as string)
-    .split("\n")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const imageUrls = (formData.getAll("imageUrl") as string[]).filter(Boolean);
 
   return {
     name: formData.get("name") as string,

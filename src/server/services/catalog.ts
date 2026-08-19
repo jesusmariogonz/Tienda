@@ -1,8 +1,30 @@
+import { Prisma } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
 
-export function listActiveProducts() {
+export type CatalogFilters = {
+  category?: string;
+  q?: string;
+  sort?: "recientes" | "precio-asc" | "precio-desc";
+};
+
+export function listActiveProducts(filters: CatalogFilters = {}) {
+  const where: Prisma.ProductWhereInput = {
+    active: true,
+    ...(filters.category ? { category: { slug: filters.category } } : {}),
+    ...(filters.q
+      ? { name: { contains: filters.q, mode: "insensitive" } }
+      : {}),
+  };
+
+  const orderBy: Prisma.ProductOrderByWithRelationInput =
+    filters.sort === "precio-asc"
+      ? { basePrice: "asc" }
+      : filters.sort === "precio-desc"
+        ? { basePrice: "desc" }
+        : { createdAt: "desc" };
+
   return prisma.product.findMany({
-    where: { active: true },
+    where,
     include: {
       images: { orderBy: { position: "asc" }, take: 1 },
       category: true,
@@ -11,7 +33,14 @@ export function listActiveProducts() {
         include: { inventory: true },
       },
     },
-    orderBy: { createdAt: "desc" },
+    orderBy,
+  });
+}
+
+export function listCategoriesWithProducts() {
+  return prisma.category.findMany({
+    where: { products: { some: { active: true } } },
+    orderBy: { name: "asc" },
   });
 }
 

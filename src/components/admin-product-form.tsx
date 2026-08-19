@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { AdminImageUploader } from "./admin-image-uploader";
+import { AdminVariantPicker } from "./admin-variant-picker";
 
 export type ProductFormVariant = {
   id?: string;
@@ -30,9 +32,7 @@ export function AdminProductForm({
   submitLabel: string;
 }) {
   const [variants, setVariants] = useState<ProductFormVariant[]>(
-    initialValues?.variants ?? [
-      { size: "", color: "", quantity: 0, lowStockThreshold: 5 },
-    ],
+    initialValues?.variants ?? [],
   );
 
   function updateVariant(index: number, patch: Partial<ProductFormVariant>) {
@@ -41,15 +41,18 @@ export function AdminProductForm({
     );
   }
 
-  function addVariant() {
-    setVariants((prev) => [
-      ...prev,
-      { size: "", color: "", quantity: 0, lowStockThreshold: 5 },
-    ]);
-  }
-
   function removeVariant(index: number) {
     setVariants((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function handleGenerate(combos: { size: string; color: string }[]) {
+    setVariants((prev) => {
+      const existingKeys = new Set(prev.map((v) => `${v.size}::${v.color}`));
+      const additions = combos
+        .filter((c) => !existingKeys.has(`${c.size}::${c.color}`))
+        .map((c) => ({ size: c.size, color: c.color, quantity: 25, lowStockThreshold: 5 }));
+      return [...prev, ...additions];
+    });
   }
 
   return (
@@ -99,18 +102,7 @@ export function AdminProductForm({
         </div>
       </div>
 
-      <div>
-        <label className="mb-1 block text-sm font-medium">
-          Imágenes (una URL por línea)
-        </label>
-        <textarea
-          name="imageUrls"
-          rows={3}
-          defaultValue={initialValues?.imageUrls.join("\n")}
-          placeholder="https://…"
-          className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
-        />
-      </div>
+      <AdminImageUploader initialUrls={initialValues?.imageUrls} />
 
       <label className="flex items-center gap-2 text-sm">
         <input
@@ -122,75 +114,69 @@ export function AdminProductForm({
       </label>
 
       <div>
-        <div className="mb-2 flex items-center justify-between">
-          <p className="text-sm font-medium">Variantes (talla / color)</p>
-          <button
-            type="button"
-            onClick={addVariant}
-            className="text-sm text-zinc-600 underline"
-          >
-            + Agregar variante
-          </button>
-        </div>
+        <p className="mb-2 text-sm font-medium">Variantes (talla / color)</p>
 
-        <div className="flex flex-col gap-2">
-          {variants.map((v, i) => (
-            <div
-              key={i}
-              className="grid grid-cols-[1fr_1fr_5rem_5rem_auto] items-center gap-2 rounded-md border border-zinc-200 p-2"
-            >
-              {v.id && <input type="hidden" name="variantId" value={v.id} />}
-              {!v.id && <input type="hidden" name="variantId" value="" />}
-              <input
-                name="variantSize"
-                placeholder="Talla"
-                required
-                value={v.size}
-                onChange={(e) => updateVariant(i, { size: e.target.value })}
-                className="rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
-              />
-              <input
-                name="variantColor"
-                placeholder="Color"
-                required
-                value={v.color}
-                onChange={(e) => updateVariant(i, { color: e.target.value })}
-                className="rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
-              />
-              <input
-                name="variantQuantity"
-                type="number"
-                min="0"
-                placeholder="Stock"
-                required
-                value={v.quantity}
-                onChange={(e) =>
-                  updateVariant(i, { quantity: Number(e.target.value) })
-                }
-                className="rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
-              />
-              <input
-                name="variantThreshold"
-                type="number"
-                min="0"
-                placeholder="Alerta"
-                required
-                value={v.lowStockThreshold}
-                onChange={(e) =>
-                  updateVariant(i, { lowStockThreshold: Number(e.target.value) })
-                }
-                className="rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
-              />
-              <button
-                type="button"
-                onClick={() => removeVariant(i)}
-                className="text-xs text-red-600"
+        <AdminVariantPicker onGenerate={handleGenerate} />
+
+        {variants.length > 0 && (
+          <div className="mt-3 flex flex-col gap-2">
+            {variants.map((v, i) => (
+              <div
+                key={i}
+                className="grid grid-cols-[1fr_1fr_5rem_5rem_auto] items-center gap-2 rounded-md border border-zinc-200 p-2"
               >
-                Quitar
-              </button>
-            </div>
-          ))}
-        </div>
+                <input type="hidden" name="variantId" value={v.id ?? ""} />
+                <input
+                  name="variantSize"
+                  placeholder="Talla"
+                  required
+                  value={v.size}
+                  onChange={(e) => updateVariant(i, { size: e.target.value })}
+                  className="rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
+                />
+                <input
+                  name="variantColor"
+                  placeholder="Color"
+                  required
+                  value={v.color}
+                  onChange={(e) => updateVariant(i, { color: e.target.value })}
+                  className="rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
+                />
+                <input
+                  name="variantQuantity"
+                  type="number"
+                  min="0"
+                  placeholder="Stock"
+                  required
+                  value={v.quantity}
+                  onChange={(e) =>
+                    updateVariant(i, { quantity: Number(e.target.value) })
+                  }
+                  className="rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
+                />
+                <input
+                  name="variantThreshold"
+                  type="number"
+                  min="0"
+                  placeholder="Alerta"
+                  required
+                  value={v.lowStockThreshold}
+                  onChange={(e) =>
+                    updateVariant(i, { lowStockThreshold: Number(e.target.value) })
+                  }
+                  className="rounded-md border border-zinc-300 px-2 py-1.5 text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeVariant(i)}
+                  className="text-xs text-red-600"
+                >
+                  Quitar
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <button

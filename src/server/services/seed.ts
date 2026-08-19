@@ -1,8 +1,10 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 
-const PLACEHOLDER_IMAGE = (seed: string) =>
-  `https://picsum.photos/seed/${seed}/800/1000`;
+// Text-labeled placeholder (not a real product photo) so it's obvious what
+// each item is until the merchant uploads real photos from the admin panel.
+const PLACEHOLDER_IMAGE = (label: string) =>
+  `https://placehold.co/800x1000/f4f4f5/52525b?text=${encodeURIComponent(label)}`;
 
 const SIZES = ["S", "M", "L", "XL"];
 
@@ -135,7 +137,7 @@ export async function runSeed() {
       await prisma.productImage.createMany({
         data: [0, 1].map((i) => ({
           productId: product.id,
-          url: PLACEHOLDER_IMAGE(`${p.slug}-${i}`),
+          url: PLACEHOLDER_IMAGE(p.name),
           alt: p.name,
           position: i,
         })),
