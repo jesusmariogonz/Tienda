@@ -8,6 +8,7 @@ export const authConfig: NextAuthConfig = {
   // Host header NextAuth sees. Without this, Auth.js rejects the request as
   // an untrusted host and the credentials sign-in silently fails.
   trustHost: true,
+  secret: process.env.AUTH_SECRET,
   pages: { signIn: "/admin/login" },
   providers: [],
   callbacks: {
