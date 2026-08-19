@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getMercadoPagoPreference } from "@/lib/mercadopago";
 import { appUrl, currency } from "@/lib/config";
-import { attachPaymentIntent, createPendingOrder } from "@/server/services/orders";
+import {
+  attachPaymentIntent,
+  computeDiscountedLineAmountsCents,
+  createPendingOrder,
+} from "@/server/services/orders";
 
 const bodySchema = z.object({
   items: z
@@ -18,6 +22,7 @@ const bodySchema = z.object({
     name: z.string().optional(),
     phone: z.string().optional(),
   }),
+  couponCode: z.string().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -25,24 +30,26 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
   }
-  const { items, customer } = parsed.data;
+  const { items, customer, couponCode } = parsed.data;
 
   let order;
   try {
-    order = await createPendingOrder(items, customer);
+    order = await createPendingOrder(items, customer, couponCode);
   } catch (err) {
     const message = err instanceof Error ? err.message : "No se pudo crear la orden";
     return NextResponse.json({ error: message }, { status: 400 });
   }
 
+  const lineAmounts = computeDiscountedLineAmountsCents(order);
+
   const preference = getMercadoPagoPreference();
   const result = await preference.create({
     body: {
-      items: order.items.map((item) => ({
+      items: order.items.map((item, i) => ({
         id: item.variantId,
-        title: `${item.variant.product.name} (${item.variant.color}/${item.variant.size})`,
-        quantity: item.quantity,
-        unit_price: Number(item.unitPrice),
+        title: `${item.variant.product.name} (${item.variant.color}/${item.variant.size}) × ${item.quantity}`,
+        quantity: 1,
+        unit_price: lineAmounts[i] / 100,
         currency_id: currency,
       })),
       payer: { email: customer.email, name: customer.name },

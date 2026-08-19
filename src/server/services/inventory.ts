@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { checkLowStockAndAlert } from "./notifications";
 
 export function listInventory() {
   return prisma.productVariant.findMany({
@@ -36,6 +37,10 @@ export async function adjustInventory(
       },
     }),
   ]);
+
+  await checkLowStockAndAlert(variantId).catch((err) =>
+    console.error("[inventory] failed to check low stock:", err),
+  );
 }
 
 export function listMovements(limit = 100) {

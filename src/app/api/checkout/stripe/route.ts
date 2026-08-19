@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getStripe } from "@/lib/stripe";
 import { appUrl, currency } from "@/lib/config";
-import { attachPaymentIntent, createPendingOrder } from "@/server/services/orders";
+import {
+  attachPaymentIntent,
+  computeDiscountedLineAmountsCents,
+  createPendingOrder,
+} from "@/server/services/orders";
 
 const bodySchema = z.object({
   items: z
@@ -18,6 +22,7 @@ const bodySchema = z.object({
     name: z.string().optional(),
     phone: z.string().optional(),
   }),
+  couponCode: z.string().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -25,27 +30,29 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
   }
-  const { items, customer } = parsed.data;
+  const { items, customer, couponCode } = parsed.data;
 
   let order;
   try {
-    order = await createPendingOrder(items, customer);
+    order = await createPendingOrder(items, customer, couponCode);
   } catch (err) {
     const message = err instanceof Error ? err.message : "No se pudo crear la orden";
     return NextResponse.json({ error: message }, { status: 400 });
   }
 
+  const lineAmounts = computeDiscountedLineAmountsCents(order);
+
   const stripe = getStripe();
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
     customer_email: customer.email,
-    line_items: order.items.map((item) => ({
-      quantity: item.quantity,
+    line_items: order.items.map((item, i) => ({
+      quantity: 1,
       price_data: {
         currency: currency.toLowerCase(),
-        unit_amount: Math.round(Number(item.unitPrice) * 100),
+        unit_amount: lineAmounts[i],
         product_data: {
-          name: `${item.variant.product.name} (${item.variant.color}/${item.variant.size})`,
+          name: `${item.variant.product.name} (${item.variant.color}/${item.variant.size}) × ${item.quantity}`,
         },
       },
     })),

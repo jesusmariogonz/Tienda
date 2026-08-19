@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma";
+import { checkLowStockAndAlert, sendOrderConfirmationEmail } from "./notifications";
 
 export type CheckoutItemInput = {
   variantId: string;
@@ -19,11 +20,33 @@ function generateOrderNumber() {
   return `ORD-${stamp}-${rand}`;
 }
 
+export async function resolveCoupon(code: string, subtotal: number) {
+  const coupon = await prisma.coupon.findUnique({ where: { code: code.toUpperCase() } });
+  if (!coupon || !coupon.active) throw new Error("Cupón inválido");
+  if (coupon.expiresAt && coupon.expiresAt < new Date()) {
+    throw new Error("Cupón expirado");
+  }
+  if (coupon.usageLimit !== null && coupon.usedCount >= coupon.usageLimit) {
+    throw new Error("Cupón agotado");
+  }
+  if (coupon.minOrderAmount && subtotal < Number(coupon.minOrderAmount)) {
+    throw new Error(`El cupón requiere un mínimo de compra de ${coupon.minOrderAmount}`);
+  }
+
+  const discount =
+    coupon.type === "PERCENTAGE"
+      ? subtotal * (Number(coupon.value) / 100)
+      : Math.min(Number(coupon.value), subtotal);
+
+  return { coupon, discount };
+}
+
 /** Creates a PENDING order without touching inventory yet — stock is only
  * decremented once payment is confirmed (see confirmOrderPaid). */
 export async function createPendingOrder(
   items: CheckoutItemInput[],
   customer: CheckoutCustomer,
+  couponCode?: string,
 ) {
   if (items.length === 0) throw new Error("El carrito está vacío");
 
@@ -59,6 +82,14 @@ export async function createPendingOrder(
     });
   }
 
+  let discountAmount = 0;
+  let couponId: string | undefined;
+  if (couponCode) {
+    const { coupon, discount } = await resolveCoupon(couponCode, subtotal);
+    discountAmount = discount;
+    couponId = coupon.id;
+  }
+
   const order = await prisma.order.create({
     data: {
       orderNumber: generateOrderNumber(),
@@ -68,8 +99,10 @@ export async function createPendingOrder(
       customerPhone: customer.phone,
       shippingAddress: customer.address,
       subtotal,
+      discountAmount,
       shippingCost: 0,
-      total: subtotal,
+      total: Math.max(0, subtotal - discountAmount),
+      couponId,
       items: { create: orderItemsData },
     },
     include: { items: { include: { variant: { include: { product: true } } } } },
@@ -93,12 +126,12 @@ export async function attachPaymentIntent(
  * InventoryMovement per line so the audit trail matches POS sales. Safe to
  * call more than once (webhooks can redeliver) — no-ops if already paid. */
 export async function confirmOrderPaid(orderId: string) {
-  await prisma.$transaction(async (tx) => {
+  const order = await prisma.$transaction(async (tx) => {
     const order = await tx.order.findUnique({
       where: { id: orderId },
-      include: { items: true },
+      include: { items: { include: { variant: { include: { product: true } } } } },
     });
-    if (!order || order.status !== "PENDING") return;
+    if (!order || order.status !== "PENDING") return null;
 
     for (const item of order.items) {
       await tx.inventory.update({
@@ -116,11 +149,56 @@ export async function confirmOrderPaid(orderId: string) {
       });
     }
 
+    if (order.couponId) {
+      await tx.coupon.update({
+        where: { id: order.couponId },
+        data: { usedCount: { increment: 1 } },
+      });
+    }
+
     await tx.order.update({
       where: { id: order.id },
       data: { status: "PAID" },
     });
+
+    return order;
   });
+
+  if (!order) return;
+
+  await sendOrderConfirmationEmail(order).catch((err) =>
+    console.error("[orders] failed to send confirmation email:", err),
+  );
+
+  for (const item of order.items) {
+    await checkLowStockAndAlert(item.variantId).catch((err) =>
+      console.error("[orders] failed to check low stock:", err),
+    );
+  }
+}
+
+/** Per-line amounts (in cents) that sum exactly to order.total, scaling
+ * each item proportionally by the coupon discount so payment providers —
+ * which bill per line item, not a single total — charge the right amount
+ * without needing a negative "discount" line. */
+export function computeDiscountedLineAmountsCents(order: {
+  subtotal: Prisma.Decimal | number;
+  total: Prisma.Decimal | number;
+  items: { quantity: number; unitPrice: Prisma.Decimal | number }[];
+}) {
+  const subtotal = Number(order.subtotal);
+  const total = Number(order.total);
+  const ratio = subtotal > 0 ? total / subtotal : 1;
+
+  const amounts = order.items.map((item) =>
+    Math.round(Number(item.unitPrice) * item.quantity * ratio * 100),
+  );
+
+  const targetCents = Math.round(total * 100);
+  const diff = targetCents - amounts.reduce((sum, a) => sum + a, 0);
+  if (amounts.length > 0) amounts[amounts.length - 1] += diff;
+
+  return amounts;
 }
 
 export async function getOrderById(id: string) {

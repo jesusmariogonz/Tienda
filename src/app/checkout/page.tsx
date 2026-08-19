@@ -10,7 +10,7 @@ type Provider = "stripe" | "mercadopago";
 export default function CheckoutPage() {
   const router = useRouter();
   const items = useCart((s) => s.items);
-  const total = cartTotal(items);
+  const subtotal = cartTotal(items);
 
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
@@ -19,12 +19,42 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [couponCode, setCouponCode] = useState("");
+  const [couponStatus, setCouponStatus] = useState<
+    { code: string; discount: number } | { error: string } | null
+  >(null);
+  const [checkingCoupon, setCheckingCoupon] = useState(false);
+
+  const discount = couponStatus && "discount" in couponStatus ? couponStatus.discount : 0;
+  const total = Math.max(0, subtotal - discount);
+
   if (items.length === 0) {
     return (
       <main className="flex-1 px-4 py-16 text-center sm:px-6">
         <p className="text-sm text-zinc-500">Tu carrito está vacío.</p>
       </main>
     );
+  }
+
+  async function applyCoupon() {
+    if (!couponCode.trim()) return;
+    setCheckingCoupon(true);
+    setCouponStatus(null);
+    try {
+      const res = await fetch(
+        `/api/coupons/validate?code=${encodeURIComponent(couponCode)}&subtotal=${subtotal}`,
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        setCouponStatus({ error: data.error ?? "Cupón inválido" });
+      } else {
+        setCouponStatus({ code: couponCode.toUpperCase(), discount: data.discount });
+      }
+    } catch {
+      setCouponStatus({ error: "No se pudo validar el cupón" });
+    } finally {
+      setCheckingCoupon(false);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -42,6 +72,8 @@ export default function CheckoutPage() {
             quantity: i.quantity,
           })),
           customer: { email, name, phone },
+          couponCode:
+            couponStatus && "discount" in couponStatus ? couponStatus.code : undefined,
         }),
       });
       const data = await res.json();
@@ -90,6 +122,40 @@ export default function CheckoutPage() {
           </div>
 
           <div>
+            <label className="mb-1 block text-sm font-medium">
+              Código de descuento
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={couponCode}
+                onChange={(e) => {
+                  setCouponCode(e.target.value);
+                  setCouponStatus(null);
+                }}
+                placeholder="Opcional"
+                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm uppercase"
+              />
+              <button
+                type="button"
+                onClick={applyCoupon}
+                disabled={checkingCoupon || !couponCode.trim()}
+                className="shrink-0 rounded-md border border-zinc-300 px-3 py-2 text-sm disabled:opacity-50"
+              >
+                {checkingCoupon ? "…" : "Aplicar"}
+              </button>
+            </div>
+            {couponStatus && "error" in couponStatus && (
+              <p className="mt-1 text-xs text-red-600">{couponStatus.error}</p>
+            )}
+            {couponStatus && "discount" in couponStatus && (
+              <p className="mt-1 text-xs text-green-700">
+                Cupón aplicado: -{formatPrice(couponStatus.discount)}
+              </p>
+            )}
+          </div>
+
+          <div>
             <p className="mb-2 text-sm font-medium">Método de pago</p>
             <div className="flex gap-2">
               <button
@@ -117,9 +183,21 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between border-t border-zinc-200 pt-4 text-base font-medium">
-            <span>Total</span>
-            <span>{formatPrice(total)}</span>
+          <div className="flex flex-col gap-1 border-t border-zinc-200 pt-4">
+            <div className="flex items-center justify-between text-sm text-zinc-500">
+              <span>Subtotal</span>
+              <span>{formatPrice(subtotal)}</span>
+            </div>
+            {discount > 0 && (
+              <div className="flex items-center justify-between text-sm text-green-700">
+                <span>Descuento</span>
+                <span>-{formatPrice(discount)}</span>
+              </div>
+            )}
+            <div className="flex items-center justify-between text-base font-medium">
+              <span>Total</span>
+              <span>{formatPrice(total)}</span>
+            </div>
           </div>
 
           {error && <p className="text-sm text-red-600">{error}</p>}

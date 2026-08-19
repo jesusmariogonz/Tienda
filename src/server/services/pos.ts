@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { checkLowStockAndAlert } from "./notifications";
 
 export async function searchVariants(query: string) {
   if (!query.trim()) return [];
@@ -89,6 +90,24 @@ export async function registerPosSale(
 
     return sale;
   });
+}
+
+/** Wraps registerPosSale and checks low-stock alerts afterwards (outside
+ * the transaction, since it sends email). */
+export async function registerPosSaleWithAlerts(
+  items: PosSaleItemInput[],
+  userId: string,
+  note?: string,
+) {
+  const sale = await registerPosSale(items, userId, note);
+
+  for (const item of items) {
+    await checkLowStockAndAlert(item.variantId).catch((err) =>
+      console.error("[pos] failed to check low stock:", err),
+    );
+  }
+
+  return sale;
 }
 
 export function listPosSales(limit = 50) {
