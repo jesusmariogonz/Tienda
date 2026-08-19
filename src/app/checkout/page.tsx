@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { useCart, cartTotal } from "@/store/cart";
 import { formatPrice } from "@/lib/money";
 
-type Provider = "stripe" | "mercadopago";
+type Provider = "stripe" | "mercadopago" | "demo";
+
+const DEMO_CHECKOUT_ENABLED = process.env.NEXT_PUBLIC_DEMO_CHECKOUT === "true";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -63,7 +65,7 @@ export default function CheckoutPage() {
     setError(null);
 
     try {
-      const res = await fetch(`/api/checkout/${provider === "stripe" ? "stripe" : "mercadopago"}`, {
+      const res = await fetch(`/api/checkout/${provider}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -76,8 +78,10 @@ export default function CheckoutPage() {
             couponStatus && "discount" in couponStatus ? couponStatus.code : undefined,
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "No se pudo iniciar el pago");
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data) {
+        throw new Error(data?.error ?? `No se pudo iniciar el pago (${res.status})`);
+      }
       if (data.url) window.location.href = data.url;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ocurrió un error");
@@ -181,6 +185,19 @@ export default function CheckoutPage() {
                 Mercado Pago
               </button>
             </div>
+            {DEMO_CHECKOUT_ENABLED && (
+              <button
+                type="button"
+                onClick={() => setProvider("demo")}
+                className={`mt-2 w-full rounded-md border border-dashed px-3 py-2 text-sm ${
+                  provider === "demo"
+                    ? "border-amber-600 bg-amber-50 text-amber-800"
+                    : "border-zinc-300 text-zinc-500"
+                }`}
+              >
+                Compra de prueba (sin cobro real)
+              </button>
+            )}
           </div>
 
           <div className="flex flex-col gap-1 border-t border-zinc-200 pt-4">

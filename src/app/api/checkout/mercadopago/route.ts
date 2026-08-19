@@ -42,29 +42,36 @@ export async function POST(req: NextRequest) {
 
   const lineAmounts = computeDiscountedLineAmountsCents(order);
 
-  const preference = getMercadoPagoPreference();
-  const result = await preference.create({
-    body: {
-      items: order.items.map((item, i) => ({
-        id: item.variantId,
-        title: `${item.variant.product.name} (${item.variant.color}/${item.variant.size}) × ${item.quantity}`,
-        quantity: 1,
-        unit_price: lineAmounts[i] / 100,
-        currency_id: currency,
-      })),
-      payer: { email: customer.email, name: customer.name },
-      external_reference: order.id,
-      back_urls: {
-        success: `${appUrl}/checkout/exito?order=${order.id}`,
-        failure: `${appUrl}/checkout/error?order=${order.id}`,
-        pending: `${appUrl}/checkout/error?order=${order.id}`,
+  try {
+    const preference = getMercadoPagoPreference();
+    const result = await preference.create({
+      body: {
+        items: order.items.map((item, i) => ({
+          id: item.variantId,
+          title: `${item.variant.product.name} (${item.variant.color}/${item.variant.size}) × ${item.quantity}`,
+          quantity: 1,
+          unit_price: lineAmounts[i] / 100,
+          currency_id: currency,
+        })),
+        payer: { email: customer.email, name: customer.name },
+        external_reference: order.id,
+        back_urls: {
+          success: `${appUrl}/checkout/exito?order=${order.id}`,
+          failure: `${appUrl}/checkout/error?order=${order.id}`,
+          pending: `${appUrl}/checkout/error?order=${order.id}`,
+        },
+        auto_return: "approved",
+        notification_url: `${appUrl}/api/webhooks/mercadopago`,
       },
-      auto_return: "approved",
-      notification_url: `${appUrl}/api/webhooks/mercadopago`,
-    },
-  });
+    });
 
-  await attachPaymentIntent(order.id, "MERCADO_PAGO", result.id ?? "");
+    await attachPaymentIntent(order.id, "MERCADO_PAGO", result.id ?? "");
 
-  return NextResponse.json({ url: result.init_point });
+    return NextResponse.json({ url: result.init_point });
+  } catch (err) {
+    console.error("[checkout/mercadopago] failed:", err);
+    const message =
+      err instanceof Error ? err.message : "No se pudo iniciar el pago con Mercado Pago";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }

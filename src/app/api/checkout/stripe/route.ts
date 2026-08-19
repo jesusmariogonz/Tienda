@@ -42,26 +42,32 @@ export async function POST(req: NextRequest) {
 
   const lineAmounts = computeDiscountedLineAmountsCents(order);
 
-  const stripe = getStripe();
-  const session = await stripe.checkout.sessions.create({
-    mode: "payment",
-    customer_email: customer.email,
-    line_items: order.items.map((item, i) => ({
-      quantity: 1,
-      price_data: {
-        currency: currency.toLowerCase(),
-        unit_amount: lineAmounts[i],
-        product_data: {
-          name: `${item.variant.product.name} (${item.variant.color}/${item.variant.size}) × ${item.quantity}`,
+  try {
+    const stripe = getStripe();
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      customer_email: customer.email,
+      line_items: order.items.map((item, i) => ({
+        quantity: 1,
+        price_data: {
+          currency: currency.toLowerCase(),
+          unit_amount: lineAmounts[i],
+          product_data: {
+            name: `${item.variant.product.name} (${item.variant.color}/${item.variant.size}) × ${item.quantity}`,
+          },
         },
-      },
-    })),
-    metadata: { orderId: order.id, orderNumber: order.orderNumber },
-    success_url: `${appUrl}/checkout/exito?order=${order.id}`,
-    cancel_url: `${appUrl}/checkout/error?order=${order.id}`,
-  });
+      })),
+      metadata: { orderId: order.id, orderNumber: order.orderNumber },
+      success_url: `${appUrl}/checkout/exito?order=${order.id}`,
+      cancel_url: `${appUrl}/checkout/error?order=${order.id}`,
+    });
 
-  await attachPaymentIntent(order.id, "STRIPE", session.id);
+    await attachPaymentIntent(order.id, "STRIPE", session.id);
 
-  return NextResponse.json({ url: session.url });
+    return NextResponse.json({ url: session.url });
+  } catch (err) {
+    console.error("[checkout/stripe] failed:", err);
+    const message = err instanceof Error ? err.message : "No se pudo iniciar el pago con Stripe";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }

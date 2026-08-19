@@ -85,9 +85,16 @@ export function AdminImageUploader({
           multiple
           onChange={(e) => handleFiles(e.target.files)}
           disabled={uploading}
-          className="text-sm"
+          className="hidden"
         />
-        {uploading && <p className="mt-1 text-xs text-zinc-500">Subiendo…</p>}
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={uploading}
+          className="rounded-md border border-zinc-300 px-4 py-2 text-sm font-medium disabled:opacity-50"
+        >
+          {uploading ? "Subiendo…" : "+ Subir imágenes"}
+        </button>
         {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
       </div>
     </div>
