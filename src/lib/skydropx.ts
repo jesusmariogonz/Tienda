@@ -166,6 +166,8 @@ export async function createSkydropxLabel(params: {
     height: 10,
     width: 20,
     length: 30,
+    package_type: process.env.SKYDROPX_PACKAGE_TYPE ?? "4G",
+    consignment_note: process.env.SKYDROPX_CONSIGNMENT_NOTE ?? "53101602",
   };
 
   const created = await skydropxFetch("/quotations", {
