@@ -2,11 +2,13 @@
 // credentials aren't set, same pattern as Resend — lets the rest of the app
 // call this safely before the client has real credentials configured.
 //
-// Skydropx authenticates via OAuth2 client_credentials (client_id + client
-// secret → short-lived bearer token), not a single static API key. Endpoint
-// and payload shapes below follow Skydropx's Pro API v1 (quotations +
-// shipments) — confirm field names against the account's actual API docs
-// if responses don't match, since provider APIs shift between plans.
+// Confirmed against Skydropx's own API docs (Aug 2026):
+// - Host: api-pro.skydropx.com
+// - Auth: POST /api/v1/oauth/token, client_credentials grant,
+//   application/x-www-form-urlencoded body.
+// - Shipment: POST /api/v1/rate/shipments/ creates a label in one call
+//   without a separate quotation step (Skydropx picks/prices the rate
+//   internally). Returns master_tracking_number + label_url directly.
 
 const API_URL = process.env.SKYDROPX_API_URL ?? "https://api-pro.skydropx.com/api/v1";
 const AUTH_URL =
@@ -41,7 +43,7 @@ async function getAccessToken(): Promise<string> {
   cachedToken = {
     value: data.access_token,
     // refresh a minute early
-    expiresAt: Date.now() + (Number(data.expires_in ?? 3600) - 60) * 1000,
+    expiresAt: Date.now() + (Number(data.expires_in ?? 7200) - 60) * 1000,
   };
   return cachedToken.value;
 }
@@ -72,6 +74,17 @@ export type ShippingAddress = {
   references?: string;
 };
 
+export type OriginAddress = {
+  company: string;
+  name: string;
+  street: string;
+  city: string;
+  state: string;
+  zip: string;
+  phone: string;
+  email: string;
+};
+
 export type SkydropxLabelResult = {
   carrier: string;
   trackingNumber: string;
@@ -80,60 +93,99 @@ export type SkydropxLabelResult = {
   cost: number;
 };
 
-/** Creates a shipment + label for an order via Skydropx. Returns null if
- * Skydropx isn't configured (no client credentials) so callers can fall
- * back to manual tracking entry. */
+function skydropxAddress(a: {
+  name: string;
+  company: string;
+  phone: string;
+  email: string;
+  street?: string;
+  city?: string;
+  state?: string;
+  zip?: string;
+  reference?: string;
+}) {
+  return {
+    name: a.name,
+    company: a.company,
+    phone: a.phone,
+    email: a.email,
+    street1: a.street ?? "",
+    area_level2: a.city ?? "",
+    area_level1: a.state ?? "",
+    area_level3: a.city ?? "",
+    postal_code: a.zip ?? "",
+    country_code: "MX",
+    reference: a.reference ?? "N/A",
+  };
+}
+
+/** Creates a shipment + label for an order via Skydropx in a single call
+ * (no separate quotation step — Skydropx prices it internally). Returns
+ * null if Skydropx isn't configured (no client credentials) so callers can
+ * fall back to manual tracking entry. */
 export async function createSkydropxLabel(params: {
   orderNumber: string;
+  origin: OriginAddress;
   toAddress: ShippingAddress;
   customerName: string;
   customerPhone?: string;
+  customerEmail: string;
   packageWeightKg?: number;
 }): Promise<SkydropxLabelResult | null> {
   if (!isConfigured()) return null;
 
-  const quotation = await skydropxFetch("/quotations", {
+  const shipment = await skydropxFetch("/rate/shipments/", {
     method: "POST",
     body: JSON.stringify({
-      address_to: {
-        street1: params.toAddress.street,
-        city: params.toAddress.city,
-        province: params.toAddress.state,
-        zip: params.toAddress.zip,
-        country_code: "MX",
-      },
-      parcel: {
-        weight: params.packageWeightKg ?? 1,
+      quotation: {
+        address_from: skydropxAddress({
+          name: params.origin.name,
+          company: params.origin.company,
+          phone: params.origin.phone,
+          email: params.origin.email,
+          street: params.origin.street,
+          city: params.origin.city,
+          state: params.origin.state,
+          zip: params.origin.zip,
+        }),
+        address_to: skydropxAddress({
+          name: params.customerName,
+          company: "N/A",
+          phone: params.customerPhone ?? "0000000000",
+          email: params.customerEmail,
+          street: params.toAddress.street,
+          city: params.toAddress.city,
+          state: params.toAddress.state,
+          zip: params.toAddress.zip,
+          reference: params.toAddress.references,
+        }),
+        parcels: [
+          {
+            weight: params.packageWeightKg ?? 1,
+            height: 10,
+            width: 20,
+            length: 30,
+          },
+        ],
       },
     }),
   });
 
-  const rateId = quotation?.rates?.[0]?.id;
-  if (!rateId) throw new Error("Skydropx no devolvió tarifas disponibles");
-
-  const shipment = await skydropxFetch("/shipments", {
-    method: "POST",
-    body: JSON.stringify({
-      rate_id: rateId,
-      reference: params.orderNumber,
-      address_to: {
-        name: params.customerName,
-        phone: params.customerPhone,
-        street1: params.toAddress.street,
-        city: params.toAddress.city,
-        province: params.toAddress.state,
-        zip: params.toAddress.zip,
-        country_code: "MX",
-      },
-    }),
-  });
+  if (shipment.error_message_detail) {
+    throw new Error(shipment.error_message_detail);
+  }
+  if (!shipment.master_tracking_number) {
+    throw new Error(
+      shipment.rate?.error_messages?.join(", ") ?? "Skydropx no devolvió número de guía",
+    );
+  }
 
   return {
-    carrier: shipment.carrier ?? quotation?.rates?.[0]?.provider ?? "Skydropx",
-    trackingNumber: shipment.tracking_number,
-    trackingUrl: shipment.tracking_url ?? null,
+    carrier: shipment.rate?.provider_display_name ?? "Skydropx",
+    trackingNumber: shipment.master_tracking_number,
+    trackingUrl: null,
     labelUrl: shipment.label_url ?? null,
-    cost: Number(shipment.cost ?? quotation?.rates?.[0]?.total ?? 0),
+    cost: Number(shipment.rate?.total ?? 0),
   };
 }
 

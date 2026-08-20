@@ -215,10 +215,22 @@ enum ShipmentStatus {
 }
 
 model ShippingSettings {
-  id             String  @id @default("default")
-  flatRate       Decimal @default(0) @db.Decimal(10, 2)
+  id             String   @id @default("default")
+  flatRate       Decimal  @default(0) @db.Decimal(10, 2)
   freeOverAmount Decimal? @db.Decimal(10, 2)
-  updatedAt      DateTime @updatedAt
+
+  // Origin address for Skydropx label generation — where the package
+  // actually ships from.
+  originCompany String?
+  originName    String?
+  originStreet  String?
+  originCity    String?
+  originState   String?
+  originZip     String?
+  originPhone   String?
+  originEmail   String?
+
+  updatedAt DateTime @updatedAt
 }
 
 model Shipment {

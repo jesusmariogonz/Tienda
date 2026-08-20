@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { upsertShipment } from "@/server/services/shipments";
-import { saveShippingSettings } from "@/server/services/shipping";
+import { getOriginAddress, saveShippingSettings } from "@/server/services/shipping";
 import { getOrderWithShipment } from "@/server/services/shipments";
 import { createSkydropxLabel } from "@/lib/skydropx";
 
@@ -58,23 +58,30 @@ export async function generateSkydropxLabelAction(formData: FormData) {
 
   let errorMessage: string | null = null;
   try {
-    const result = await createSkydropxLabel({
-      orderNumber: order.orderNumber,
-      toAddress: address,
-      customerName: order.customerName ?? order.customerEmail,
-      customerPhone: order.customerPhone ?? undefined,
-    });
-    if (!result) {
-      errorMessage = "Skydropx no está configurado (faltan las credenciales)";
+    const origin = await getOriginAddress();
+    if (!origin) {
+      errorMessage = "Falta configurar la dirección de origen en /admin/envios/tarifas";
     } else {
-      await upsertShipment(orderId, {
-        carrier: result.carrier,
-        trackingNumber: result.trackingNumber,
-        trackingUrl: result.trackingUrl ?? undefined,
-        labelUrl: result.labelUrl ?? undefined,
-        cost: result.cost,
-        status: "LABEL_CREATED",
+      const result = await createSkydropxLabel({
+        orderNumber: order.orderNumber,
+        origin,
+        toAddress: address,
+        customerName: order.customerName ?? order.customerEmail,
+        customerPhone: order.customerPhone ?? undefined,
+        customerEmail: order.customerEmail,
       });
+      if (!result) {
+        errorMessage = "Skydropx no está configurado (faltan las credenciales)";
+      } else {
+        await upsertShipment(orderId, {
+          carrier: result.carrier,
+          trackingNumber: result.trackingNumber,
+          trackingUrl: result.trackingUrl ?? undefined,
+          labelUrl: result.labelUrl ?? undefined,
+          cost: result.cost,
+          status: "LABEL_CREATED",
+        });
+      }
     }
   } catch (err) {
     console.error("[envios] Skydropx label generation failed:", err);
@@ -103,7 +110,16 @@ export async function saveShippingSettingsAction(formData: FormData) {
 
   if (!Number.isFinite(flatRate) || flatRate < 0) return;
 
-  await saveShippingSettings(flatRate, freeOverAmount);
+  await saveShippingSettings(flatRate, freeOverAmount, {
+    company: (formData.get("originCompany") as string) || "",
+    name: (formData.get("originName") as string) || "",
+    street: (formData.get("originStreet") as string) || "",
+    city: (formData.get("originCity") as string) || "",
+    state: (formData.get("originState") as string) || "",
+    zip: (formData.get("originZip") as string) || "",
+    phone: (formData.get("originPhone") as string) || "",
+    email: (formData.get("originEmail") as string) || "",
+  });
   revalidatePath("/admin/envios/tarifas");
   redirect("/admin/envios/tarifas");
 }
