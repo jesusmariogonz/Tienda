@@ -214,6 +214,13 @@ enum ShipmentStatus {
   CANCELLED
 }
 
+model ShippingSettings {
+  id             String  @id @default("default")
+  flatRate       Decimal @default(0) @db.Decimal(10, 2)
+  freeOverAmount Decimal? @db.Decimal(10, 2)
+  updatedAt      DateTime @updatedAt
+}
+
 model Shipment {
   id             String         @id @default(cuid())
   orderId        String         @unique

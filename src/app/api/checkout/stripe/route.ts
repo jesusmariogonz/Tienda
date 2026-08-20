@@ -56,16 +56,30 @@ export async function POST(req: NextRequest) {
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       customer_email: customer.email,
-      line_items: order.items.map((item, i) => ({
-        quantity: 1,
-        price_data: {
-          currency: currency.toLowerCase(),
-          unit_amount: lineAmounts[i],
-          product_data: {
-            name: `${item.variant.product.name} (${item.variant.color}/${item.variant.size}) × ${item.quantity}`,
+      line_items: [
+        ...order.items.map((item, i) => ({
+          quantity: 1,
+          price_data: {
+            currency: currency.toLowerCase(),
+            unit_amount: lineAmounts[i],
+            product_data: {
+              name: `${item.variant.product.name} (${item.variant.color}/${item.variant.size}) × ${item.quantity}`,
+            },
           },
-        },
-      })),
+        })),
+        ...(Number(order.shippingCost) > 0
+          ? [
+              {
+                quantity: 1,
+                price_data: {
+                  currency: currency.toLowerCase(),
+                  unit_amount: Math.round(Number(order.shippingCost) * 100),
+                  product_data: { name: "Envío" },
+                },
+              },
+            ]
+          : []),
+      ],
       metadata: { orderId: order.id, orderNumber: order.orderNumber },
       success_url: `${appUrl}/checkout/exito?order=${order.id}`,
       cancel_url: `${appUrl}/checkout/error?order=${order.id}`,

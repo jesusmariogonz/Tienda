@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -12,7 +13,18 @@ export default function CartPage() {
   const setQuantity = useCart((s) => s.setQuantity);
   const removeItem = useCart((s) => s.removeItem);
 
-  const total = cartTotal(items);
+  const subtotal = cartTotal(items);
+  const [shipping, setShipping] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (items.length === 0) return;
+    fetch(`/api/shipping-rate?subtotal=${subtotal}`)
+      .then((res) => res.json())
+      .then((data) => setShipping(data.cost))
+      .catch(() => setShipping(null));
+  }, [subtotal, items.length]);
+
+  const total = subtotal + (shipping ?? 0);
 
   if (items.length === 0) {
     return (
@@ -97,9 +109,25 @@ export default function CartPage() {
           ))}
         </ul>
 
-        <div className="mt-6 flex items-center justify-between text-base font-medium">
-          <span>Total</span>
-          <span>{formatPrice(total)}</span>
+        <div className="mt-6 flex flex-col gap-1 border-t border-zinc-200 pt-4">
+          <div className="flex items-center justify-between text-sm text-zinc-500">
+            <span>Subtotal</span>
+            <span>{formatPrice(subtotal)}</span>
+          </div>
+          <div className="flex items-center justify-between text-sm text-zinc-500">
+            <span>Envío</span>
+            <span>
+              {shipping === null
+                ? "Calculando…"
+                : shipping === 0
+                  ? "Gratis"
+                  : formatPrice(shipping)}
+            </span>
+          </div>
+          <div className="flex items-center justify-between text-base font-medium">
+            <span>Total</span>
+            <span>{formatPrice(total)}</span>
+          </div>
         </div>
 
         <button

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { upsertShipment } from "@/server/services/shipments";
+import { saveShippingSettings } from "@/server/services/shipping";
 
 export async function saveShipmentAction(formData: FormData) {
   const session = await auth();
@@ -34,4 +35,19 @@ export async function saveShipmentAction(formData: FormData) {
   revalidatePath("/admin/envios");
   revalidatePath(`/admin/envios/${orderId}`);
   redirect(`/admin/envios/${orderId}`);
+}
+
+export async function saveShippingSettingsAction(formData: FormData) {
+  const session = await auth();
+  if (!session?.user) return;
+
+  const flatRate = Number(formData.get("flatRate"));
+  const freeOverRaw = formData.get("freeOverAmount") as string;
+  const freeOverAmount = freeOverRaw ? Number(freeOverRaw) : null;
+
+  if (!Number.isFinite(flatRate) || flatRate < 0) return;
+
+  await saveShippingSettings(flatRate, freeOverAmount);
+  revalidatePath("/admin/envios/tarifas");
+  redirect("/admin/envios/tarifas");
 }

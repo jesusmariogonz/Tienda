@@ -25,12 +25,20 @@ export default async function AdminEnviosPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-xl font-semibold">Envíos</h1>
-        <p className="text-xs text-zinc-500">
-          Seguimiento de envíos por orden pagada. Da clic en una orden para ver la
-          dirección, costo y actualizar el estado del envío.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-semibold">Envíos</h1>
+          <p className="text-xs text-zinc-500">
+            Seguimiento de envíos por orden pagada. Da clic en una orden para ver la
+            dirección, costo y actualizar el estado del envío.
+          </p>
+        </div>
+        <Link
+          href="/admin/envios/tarifas"
+          className="shrink-0 rounded-md border border-zinc-300 px-3 py-2 text-xs"
+        >
+          Tarifas de envío
+        </Link>
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-zinc-200">

@@ -55,13 +55,26 @@ export async function POST(req: NextRequest) {
     const preference = getMercadoPagoPreference();
     const result = await preference.create({
       body: {
-        items: order.items.map((item, i) => ({
-          id: item.variantId,
-          title: `${item.variant.product.name} (${item.variant.color}/${item.variant.size}) × ${item.quantity}`,
-          quantity: 1,
-          unit_price: lineAmounts[i] / 100,
-          currency_id: currency,
-        })),
+        items: [
+          ...order.items.map((item, i) => ({
+            id: item.variantId,
+            title: `${item.variant.product.name} (${item.variant.color}/${item.variant.size}) × ${item.quantity}`,
+            quantity: 1,
+            unit_price: lineAmounts[i] / 100,
+            currency_id: currency,
+          })),
+          ...(Number(order.shippingCost) > 0
+            ? [
+                {
+                  id: "shipping",
+                  title: "Envío",
+                  quantity: 1,
+                  unit_price: Number(order.shippingCost),
+                  currency_id: currency,
+                },
+              ]
+            : []),
+        ],
         payer: { email: customer.email, name: customer.name },
         external_reference: order.id,
         back_urls: {

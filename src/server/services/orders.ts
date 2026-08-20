@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma";
 import { checkLowStockAndAlert, sendOrderConfirmationEmail } from "./notifications";
+import { computeShippingCost } from "./shipping";
 
 export type CheckoutItemInput = {
   variantId: string;
@@ -90,6 +91,8 @@ export async function createPendingOrder(
     couponId = coupon.id;
   }
 
+  const shippingCost = await computeShippingCost(subtotal);
+
   const order = await prisma.order.create({
     data: {
       orderNumber: generateOrderNumber(),
@@ -100,8 +103,8 @@ export async function createPendingOrder(
       shippingAddress: customer.address,
       subtotal,
       discountAmount,
-      shippingCost: 0,
-      total: Math.max(0, subtotal - discountAmount),
+      shippingCost,
+      total: Math.max(0, subtotal - discountAmount) + shippingCost,
       couponId,
       items: { create: orderItemsData },
     },
@@ -183,11 +186,11 @@ export async function confirmOrderPaid(orderId: string) {
  * without needing a negative "discount" line. */
 export function computeDiscountedLineAmountsCents(order: {
   subtotal: Prisma.Decimal | number;
-  total: Prisma.Decimal | number;
+  discountAmount: Prisma.Decimal | number;
   items: { quantity: number; unitPrice: Prisma.Decimal | number }[];
 }) {
   const subtotal = Number(order.subtotal);
-  const total = Number(order.total);
+  const total = Math.max(0, subtotal - Number(order.discountAmount));
   const ratio = subtotal > 0 ? total / subtotal : 1;
 
   const amounts = order.items.map((item) =>
