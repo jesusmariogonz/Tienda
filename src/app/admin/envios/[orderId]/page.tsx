@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getOrderWithShipment } from "@/server/services/shipments";
 import { formatPrice } from "@/lib/money";
-import { saveShipmentAction } from "../actions";
+import { skydropxConfigured } from "@/lib/skydropx";
+import { generateSkydropxLabelAction, saveShipmentAction } from "../actions";
 
 const STATUS_OPTIONS = [
   { value: "PENDING", label: "Pendiente" },
@@ -31,6 +32,7 @@ export default async function AdminEnvioDetailPage({
   if (!order) notFound();
 
   const address = (order.shippingAddress ?? null) as Address | null;
+  const canAutoGenerate = skydropxConfigured() && Boolean(address?.street);
 
   return (
     <div className="flex flex-col gap-6">
@@ -83,6 +85,33 @@ export default async function AdminEnvioDetailPage({
             </ul>
             <p className="mt-2 text-sm font-medium">Total: {formatPrice(Number(order.total))}</p>
           </div>
+        </div>
+
+        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-3 rounded-lg border border-zinc-200 p-4">
+          <h2 className="text-sm font-semibold">Guía automática (Skydropx)</h2>
+          {skydropxConfigured() ? (
+            <form action={generateSkydropxLabelAction}>
+              <input type="hidden" name="orderId" value={order.id} />
+              <button
+                type="submit"
+                disabled={!canAutoGenerate}
+                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm disabled:opacity-40"
+              >
+                Generar guía con Skydropx
+              </button>
+              {!address?.street && (
+                <p className="mt-1 text-xs text-amber-600">
+                  Esta orden no tiene dirección — no se puede generar la guía.
+                </p>
+              )}
+            </form>
+          ) : (
+            <p className="text-xs text-zinc-400">
+              Skydropx no está conectado todavía (falta SKYDROPX_API_KEY). Mientras
+              tanto, captura el seguimiento manualmente abajo.
+            </p>
+          )}
         </div>
 
         <form
@@ -184,6 +213,7 @@ export default async function AdminEnvioDetailPage({
             Guardar
           </button>
         </form>
+        </div>
       </div>
     </div>
   );

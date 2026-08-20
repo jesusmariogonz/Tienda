@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { upsertShipment } from "@/server/services/shipments";
 import { saveShippingSettings } from "@/server/services/shipping";
+import { getOrderWithShipment } from "@/server/services/shipments";
+import { createSkydropxLabel } from "@/lib/skydropx";
 
 export async function saveShipmentAction(formData: FormData) {
   const session = await auth();
@@ -31,6 +33,47 @@ export async function saveShipmentAction(formData: FormData) {
         | "RETURNED"
         | "CANCELLED") || "PENDING",
   });
+
+  revalidatePath("/admin/envios");
+  revalidatePath(`/admin/envios/${orderId}`);
+  redirect(`/admin/envios/${orderId}`);
+}
+
+export async function generateSkydropxLabelAction(formData: FormData) {
+  const session = await auth();
+  if (!session?.user) return;
+
+  const orderId = formData.get("orderId") as string;
+  if (!orderId) return;
+
+  const order = await getOrderWithShipment(orderId);
+  if (!order) return;
+
+  const address = (order.shippingAddress ?? null) as
+    | { street?: string; city?: string; state?: string; zip?: string; references?: string }
+    | null;
+  if (!address?.street) return;
+
+  try {
+    const result = await createSkydropxLabel({
+      orderNumber: order.orderNumber,
+      toAddress: address,
+      customerName: order.customerName ?? order.customerEmail,
+      customerPhone: order.customerPhone ?? undefined,
+    });
+    if (!result) return;
+
+    await upsertShipment(orderId, {
+      carrier: result.carrier,
+      trackingNumber: result.trackingNumber,
+      trackingUrl: result.trackingUrl ?? undefined,
+      labelUrl: result.labelUrl ?? undefined,
+      cost: result.cost,
+      status: "LABEL_CREATED",
+    });
+  } catch (err) {
+    console.error("[envios] Skydropx label generation failed:", err);
+  }
 
   revalidatePath("/admin/envios");
   revalidatePath(`/admin/envios/${orderId}`);
