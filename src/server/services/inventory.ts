@@ -4,7 +4,7 @@ import { checkLowStockAndAlert } from "./notifications";
 export function listInventory() {
   return prisma.productVariant.findMany({
     where: { active: true },
-    include: { product: true, inventory: true },
+    include: { product: { include: { category: true } }, inventory: true },
     orderBy: [{ product: { name: "asc" } }],
   });
 }

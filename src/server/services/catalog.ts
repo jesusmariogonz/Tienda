@@ -12,7 +12,13 @@ export function listActiveProducts(filters: CatalogFilters = {}) {
     active: true,
     ...(filters.category ? { category: { slug: filters.category } } : {}),
     ...(filters.q
-      ? { name: { contains: filters.q, mode: "insensitive" } }
+      ? {
+          OR: [
+            { name: { contains: filters.q, mode: "insensitive" } },
+            { description: { contains: filters.q, mode: "insensitive" } },
+            { category: { name: { contains: filters.q, mode: "insensitive" } } },
+          ],
+        }
       : {}),
   };
 

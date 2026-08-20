@@ -1,0 +1,132 @@
+"use client";
+
+import Link from "next/link";
+import { useState } from "react";
+
+export function MegaMenu({
+  categories,
+}: {
+  categories: { slug: string; name: string }[];
+}) {
+  const [open, setOpen] = useState(false);
+  const [hovered, setHovered] = useState<string | null>("categorias");
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-label="Abrir menú"
+        aria-expanded={open}
+        className="flex h-9 w-9 flex-col items-center justify-center gap-1.5"
+      >
+        <span className="h-0.5 w-6 bg-white" />
+        <span className="h-0.5 w-6 bg-white" />
+        <span className="h-0.5 w-6 bg-white" />
+      </button>
+
+      {open && (
+        <>
+          <button
+            type="button"
+            aria-hidden
+            tabIndex={-1}
+            onClick={() => setOpen(false)}
+            className="fixed inset-0 z-30 cursor-default bg-black/30"
+          />
+          <div className="absolute top-full left-0 z-40 mt-3 flex w-[min(90vw,640px)] overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-xl">
+            <div className="w-48 shrink-0 border-r border-zinc-100 bg-zinc-50 py-2">
+              <MenuItem
+                label="Categorías"
+                active={hovered === "categorias"}
+                onHover={() => setHovered("categorias")}
+              />
+              <MenuLink
+                href="/#catalogo"
+                label="Descuentos"
+                onClick={() => setOpen(false)}
+                onHover={() => setHovered(null)}
+              />
+              <MenuLink
+                href="/sobre-nosotros"
+                label="Sobre nosotros"
+                onClick={() => setOpen(false)}
+                onHover={() => setHovered(null)}
+              />
+            </div>
+            <div className="flex-1 p-4">
+              {hovered === "categorias" ? (
+                categories.length > 0 ? (
+                  <div className="grid grid-cols-2 gap-1">
+                    {categories.map((c) => (
+                      <Link
+                        key={c.slug}
+                        href={`/?category=${c.slug}`}
+                        onClick={() => setOpen(false)}
+                        className="rounded-md px-2 py-1.5 text-sm text-zinc-700 hover:bg-zinc-50"
+                      >
+                        {c.name}
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="px-2 text-sm text-zinc-400">
+                    Aún no hay categorías.
+                  </p>
+                )
+              ) : (
+                <p className="px-2 text-sm text-zinc-400">
+                  Pasa el cursor sobre una opción para ver más.
+                </p>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function MenuItem({
+  label,
+  active,
+  onHover,
+}: {
+  label: string;
+  active: boolean;
+  onHover: () => void;
+}) {
+  return (
+    <div
+      onMouseEnter={onHover}
+      className={`cursor-default px-4 py-2.5 text-sm font-semibold tracking-wide uppercase ${
+        active ? "bg-white text-black" : "text-zinc-600"
+      }`}
+    >
+      {label}
+    </div>
+  );
+}
+
+function MenuLink({
+  href,
+  label,
+  onClick,
+  onHover,
+}: {
+  href: string;
+  label: string;
+  onClick: () => void;
+  onHover: () => void;
+}) {
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      onMouseEnter={onHover}
+      className="block px-4 py-2.5 text-sm font-semibold tracking-wide text-zinc-600 uppercase hover:bg-white hover:text-black"
+    >
+      {label}
+    </Link>
+  );
+}

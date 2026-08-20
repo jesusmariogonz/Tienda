@@ -4,8 +4,13 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useCart } from "@/store/cart";
 import { appName } from "@/lib/config";
+import { MegaMenu } from "./mega-menu";
 
-export function SiteHeader() {
+export function SiteHeader({
+  categories,
+}: {
+  categories: { slug: string; name: string }[];
+}) {
   const items = useCart((s) => s.items);
   const [mounted, setMounted] = useState(false);
 
@@ -15,12 +20,15 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-20 flex items-center justify-between bg-black px-4 py-4 sm:px-6">
-      <Link
-        href="/"
-        className="text-xl font-extrabold tracking-tighter text-white uppercase italic"
-      >
-        {appName}
-      </Link>
+      <div className="flex items-center gap-3">
+        <MegaMenu categories={categories} />
+        <Link
+          href="/"
+          className="text-xl font-extrabold tracking-tighter text-white uppercase italic"
+        >
+          {appName}
+        </Link>
+      </div>
       <Link
         href="/carrito"
         className="relative text-sm font-semibold tracking-wide text-white uppercase"

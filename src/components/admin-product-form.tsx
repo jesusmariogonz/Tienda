@@ -8,6 +8,7 @@ export type ProductFormVariant = {
   id?: string;
   size: string;
   color: string;
+  colorHex: string;
   quantity: number;
   lowStockThreshold: number;
 };
@@ -45,12 +46,20 @@ export function AdminProductForm({
     setVariants((prev) => prev.filter((_, i) => i !== index));
   }
 
-  function handleGenerate(combos: { size: string; color: string }[]) {
+  function handleGenerate(
+    combos: { size: string; color: string; colorHex: string }[],
+  ) {
     setVariants((prev) => {
       const existingKeys = new Set(prev.map((v) => `${v.size}::${v.color}`));
       const additions = combos
         .filter((c) => !existingKeys.has(`${c.size}::${c.color}`))
-        .map((c) => ({ size: c.size, color: c.color, quantity: 25, lowStockThreshold: 5 }));
+        .map((c) => ({
+          size: c.size,
+          color: c.color,
+          colorHex: c.colorHex,
+          quantity: 25,
+          lowStockThreshold: 5,
+        }));
       return [...prev, ...additions];
     });
   }
@@ -120,12 +129,27 @@ export function AdminProductForm({
 
         {variants.length > 0 && (
           <div className="mt-3 flex flex-col gap-2">
+            <div className="grid grid-cols-[3rem_5rem_1fr_6rem_6rem_auto] gap-2 px-2 text-[10px] font-medium tracking-wide text-zinc-400 uppercase">
+              <span>Color</span>
+              <span>Talla</span>
+              <span>Nombre color</span>
+              <span>Stock inicial</span>
+              <span>Alerta stock bajo</span>
+              <span />
+            </div>
             {variants.map((v, i) => (
               <div
                 key={i}
-                className="grid grid-cols-[1fr_1fr_5rem_5rem_auto] items-center gap-2 rounded-md border border-zinc-200 p-2"
+                className="grid grid-cols-[3rem_5rem_1fr_6rem_6rem_auto] items-center gap-2 rounded-md border border-zinc-200 p-2"
               >
                 <input type="hidden" name="variantId" value={v.id ?? ""} />
+                <input
+                  type="color"
+                  value={v.colorHex || "#000000"}
+                  onChange={(e) => updateVariant(i, { colorHex: e.target.value })}
+                  className="h-8 w-10 cursor-pointer rounded border border-zinc-300"
+                />
+                <input type="hidden" name="variantColorHex" value={v.colorHex || ""} />
                 <input
                   name="variantSize"
                   placeholder="Talla"
@@ -146,7 +170,7 @@ export function AdminProductForm({
                   name="variantQuantity"
                   type="number"
                   min="0"
-                  placeholder="Stock"
+                  title="Stock inicial: cuántas unidades hay disponibles ahora"
                   required
                   value={v.quantity}
                   onChange={(e) =>
@@ -158,7 +182,7 @@ export function AdminProductForm({
                   name="variantThreshold"
                   type="number"
                   min="0"
-                  placeholder="Alerta"
+                  title="Alerta de stock bajo: a partir de cuántas unidades te avisamos por correo"
                   required
                   value={v.lowStockThreshold}
                   onChange={(e) =>

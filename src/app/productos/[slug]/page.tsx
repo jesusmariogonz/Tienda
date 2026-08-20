@@ -19,6 +19,7 @@ export default async function ProductPage({
     id: v.id,
     size: v.size,
     color: v.color,
+    colorHex: v.colorHex,
     price: v.price ? Number(v.price) : basePrice,
     stock: v.inventory?.quantity ?? 0,
   }));

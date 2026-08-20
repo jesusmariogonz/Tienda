@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { listActiveProducts, listCategoriesWithProducts } from "@/server/services/catalog";
+import { listActiveProducts } from "@/server/services/catalog";
 import { formatPrice } from "@/lib/money";
 import { appName } from "@/lib/config";
 import { CatalogFilters } from "@/components/catalog-filters";
@@ -21,10 +21,11 @@ export default async function Home({
       ? params.sort
       : "recientes";
 
-  const [products, categories] = await Promise.all([
-    listActiveProducts({ category: params.category, q: params.q, sort }),
-    listCategoriesWithProducts(),
-  ]);
+  const products = await listActiveProducts({
+    category: params.category,
+    q: params.q,
+    sort,
+  });
 
   return (
     <div className="flex flex-col">
@@ -46,7 +47,7 @@ export default async function Home({
       </section>
 
       <div id="catalogo">
-        <CatalogFilters categories={categories} />
+        <CatalogFilters />
       </div>
 
       <main className="flex-1 px-4 py-8 sm:px-6">

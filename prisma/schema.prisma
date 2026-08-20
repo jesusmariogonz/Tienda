@@ -83,6 +83,7 @@ model ProductVariant {
   sku       String   @unique
   size      String
   color     String
+  colorHex  String? // hex swatch shown on the storefront instead of the color name
   price     Decimal? @db.Decimal(10, 2) // overrides Product.basePrice when set
   active    Boolean  @default(true)
   createdAt DateTime @default(now())

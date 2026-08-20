@@ -1,17 +1,14 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 
-export function CatalogFilters({
-  categories,
-}: {
-  categories: { slug: string; name: string }[];
-}) {
+export function CatalogFilters() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [q, setQ] = useState(searchParams.get("q") ?? "");
   const [, startTransition] = useTransition();
+  const isFirstRender = useRef(true);
 
   function updateParam(key: string, value: string) {
     const params = new URLSearchParams(searchParams.toString());
@@ -22,47 +19,49 @@ export function CatalogFilters({
     });
   }
 
-  function handleSearchSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    updateParam("q", q);
-  }
+  // Search-as-you-type: re-query on every keystroke, debounced, and clears
+  // back to the full catalog the moment the field is empty.
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    const timeout = setTimeout(() => updateParam("q", q), 250);
+    return () => clearTimeout(timeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q]);
 
   return (
     <div className="flex flex-col gap-3 border-b border-zinc-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-      <form onSubmit={handleSearchSubmit} className="flex-1 sm:max-w-xs">
+      <div className="relative flex-1 sm:max-w-xs">
         <input
-          type="search"
+          type="text"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Buscar productos…"
-          className="w-full rounded-full border border-zinc-300 px-4 py-2 text-sm"
+          className="w-full rounded-full border border-zinc-300 px-4 py-2 pr-9 text-sm"
         />
-      </form>
-
-      <div className="flex gap-2">
-        <select
-          defaultValue={searchParams.get("category") ?? ""}
-          onChange={(e) => updateParam("category", e.target.value)}
-          className="rounded-full border border-zinc-300 bg-white px-3 py-2 text-sm"
-        >
-          <option value="">Todas las categorías</option>
-          {categories.map((c) => (
-            <option key={c.slug} value={c.slug}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-
-        <select
-          defaultValue={searchParams.get("sort") ?? "recientes"}
-          onChange={(e) => updateParam("sort", e.target.value)}
-          className="rounded-full border border-zinc-300 bg-white px-3 py-2 text-sm"
-        >
-          <option value="recientes">Más recientes</option>
-          <option value="precio-asc">Precio: menor a mayor</option>
-          <option value="precio-desc">Precio: mayor a menor</option>
-        </select>
+        {q && (
+          <button
+            type="button"
+            onClick={() => setQ("")}
+            aria-label="Limpiar búsqueda"
+            className="absolute top-1/2 right-3 -translate-y-1/2 text-zinc-400 hover:text-zinc-700"
+          >
+            ×
+          </button>
+        )}
       </div>
+
+      <select
+        defaultValue={searchParams.get("sort") ?? "recientes"}
+        onChange={(e) => updateParam("sort", e.target.value)}
+        className="rounded-full border border-zinc-300 bg-white px-3 py-2 text-sm"
+      >
+        <option value="recientes">Más recientes</option>
+        <option value="precio-asc">Precio: menor a mayor</option>
+        <option value="precio-desc">Precio: mayor a menor</option>
+      </select>
     </div>
   );
 }
