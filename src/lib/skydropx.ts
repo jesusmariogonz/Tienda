@@ -305,3 +305,17 @@ export async function bookSkydropxShipment(params: {
 export function skydropxConfigured() {
   return isConfigured();
 }
+
+/** Reads the account's available credit balance (GET /finance/credits).
+ * Returns null if Skydropx isn't configured. */
+export async function getSkydropxBalance(): Promise<{ amount: number; currency: string } | null> {
+  if (!isConfigured()) return null;
+
+  const res = await skydropxFetch("/finance/credits", { method: "GET" });
+  const entry = Array.isArray(res.data) ? res.data[0] : res.data ?? res;
+  const amount = Number(
+    entry?.balance ?? entry?.amount ?? entry?.available_credit ?? entry?.credits ?? 0,
+  );
+  const currency = entry?.currency_code ?? entry?.currency ?? "MXN";
+  return { amount, currency };
+}

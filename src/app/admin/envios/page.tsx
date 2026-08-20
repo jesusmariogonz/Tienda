@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { listShipments } from "@/server/services/shipments";
 import { formatPrice } from "@/lib/money";
+import { checkSkydropxBalanceAction } from "./actions";
 
 const STATUS_LABEL: Record<string, string> = {
   PENDING: "Pendiente",
@@ -20,8 +21,13 @@ const STATUS_STYLE: Record<string, string> = {
   CANCELLED: "bg-zinc-200 text-zinc-500",
 };
 
-export default async function AdminEnviosPage() {
+export default async function AdminEnviosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ skydropx_balance?: string }>;
+}) {
   const orders = await listShipments();
+  const { skydropx_balance: balanceMessage } = await searchParams;
 
   return (
     <div className="flex flex-col gap-6">
@@ -33,13 +39,29 @@ export default async function AdminEnviosPage() {
             dirección, costo y actualizar el estado del envío.
           </p>
         </div>
-        <Link
-          href="/admin/envios/tarifas"
-          className="shrink-0 rounded-md border border-zinc-300 px-3 py-2 text-xs"
-        >
-          Tarifas de envío
-        </Link>
+        <div className="flex shrink-0 gap-2">
+          <form action={checkSkydropxBalanceAction}>
+            <button
+              type="submit"
+              className="rounded-md border border-zinc-300 px-3 py-2 text-xs"
+            >
+              Ver saldo Skydropx
+            </button>
+          </form>
+          <Link
+            href="/admin/envios/tarifas"
+            className="rounded-md border border-zinc-300 px-3 py-2 text-xs"
+          >
+            Tarifas de envío
+          </Link>
+        </div>
       </div>
+
+      {balanceMessage && (
+        <div className="rounded-md border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm">
+          {balanceMessage}
+        </div>
+      )}
 
       <div className="overflow-x-auto rounded-lg border border-zinc-200">
         <table className="w-full text-sm">

@@ -10,7 +10,7 @@ import {
   upsertShipment,
 } from "@/server/services/shipments";
 import { getOriginAddress, saveShippingSettings } from "@/server/services/shipping";
-import { bookSkydropxShipment, quoteSkydropxShipment } from "@/lib/skydropx";
+import { bookSkydropxShipment, getSkydropxBalance, quoteSkydropxShipment } from "@/lib/skydropx";
 
 function truncate(message: string) {
   // A raw provider error body can be huge and blow past the URL length
@@ -157,6 +157,24 @@ export async function cancelSkydropxQuoteAction(formData: FormData) {
   await clearSkydropxQuote(orderId);
   revalidatePath(`/admin/envios/${orderId}`);
   redirect(`/admin/envios/${orderId}`);
+}
+
+export async function checkSkydropxBalanceAction() {
+  const session = await auth();
+  if (!session?.user) return;
+
+  let message: string;
+  try {
+    const balance = await getSkydropxBalance();
+    message = balance
+      ? `Saldo disponible: ${new Intl.NumberFormat("es-MX", { style: "currency", currency: balance.currency }).format(balance.amount)}`
+      : "Skydropx no está configurado (faltan las credenciales)";
+  } catch (err) {
+    console.error("[envios] Skydropx balance check failed:", err);
+    message = `No se pudo consultar el saldo: ${err instanceof Error ? err.message : "error desconocido"}`;
+  }
+
+  redirect(`/admin/envios?skydropx_balance=${encodeURIComponent(truncate(message))}`);
 }
 
 export async function saveShippingSettingsAction(formData: FormData) {
