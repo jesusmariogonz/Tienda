@@ -5,6 +5,6 @@
 export const appUrl =
   process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
-export const appName = process.env.APP_NAME ?? "Tienda";
+export const appName = process.env.APP_NAME ?? "Dupe Fit";
 
 export const currency = process.env.STORE_CURRENCY ?? "MXN";

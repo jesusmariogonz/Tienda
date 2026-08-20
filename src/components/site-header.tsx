@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useCart } from "@/store/cart";
@@ -22,11 +23,18 @@ export function SiteHeader({
     <header className="sticky top-0 z-20 flex items-center justify-between bg-black px-4 py-4 sm:px-6">
       <div className="flex items-center gap-3">
         <MegaMenu categories={categories} />
-        <Link
-          href="/"
-          className="text-xl font-extrabold tracking-tighter text-white uppercase italic"
-        >
-          {appName}
+        <Link href="/" className="flex items-center gap-2">
+          <Image
+            src="/brand/logo-dupefit.jpg"
+            alt={appName}
+            width={36}
+            height={36}
+            className="rounded-full"
+            priority
+          />
+          <span className="hidden text-xl font-extrabold tracking-tighter text-white uppercase italic sm:inline">
+            {appName}
+          </span>
         </Link>
       </div>
       <Link

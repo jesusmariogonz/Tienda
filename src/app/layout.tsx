@@ -19,6 +19,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: appName,
   description: "Tienda en línea",
+  icons: {
+    icon: "/brand/logo-dupefit.jpg",
+    apple: "/brand/logo-dupefit.jpg",
+  },
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
