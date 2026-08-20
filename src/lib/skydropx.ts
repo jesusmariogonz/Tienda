@@ -10,7 +10,7 @@
 //   without a separate quotation step (Skydropx picks/prices the rate
 //   internally). Returns master_tracking_number + label_url directly.
 
-const API_URL = process.env.SKYDROPX_API_URL ?? "https://api-pro.skydropx.com/api/v1";
+const API_URL = process.env.SKYDROPX_API_URL ?? "https://app.skydropx.com/api/v1";
 const AUTH_URL =
   process.env.SKYDROPX_AUTH_URL ?? "https://api-pro.skydropx.com/api/v1/oauth/token";
 
