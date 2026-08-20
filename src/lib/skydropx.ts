@@ -206,6 +206,8 @@ export async function createSkydropxLabel(params: {
         address_from: addressFrom,
         address_to: addressTo,
         parcels: [parcel],
+        consignment_note: parcel.consignment_note,
+        package_type: parcel.package_type,
       },
     }),
   });
