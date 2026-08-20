@@ -198,7 +198,13 @@ export async function createSkydropxLabel(params: {
   const shipment = await skydropxFetch("/shipments", {
     method: "POST",
     body: JSON.stringify({
-      shipment: { quotation_id: created.id, rate_id: rate.id },
+      shipment: {
+        quotation_id: created.id,
+        rate_id: rate.id,
+        address_from: addressFrom,
+        address_to: addressTo,
+        parcels: [parcel],
+      },
     }),
   });
 
