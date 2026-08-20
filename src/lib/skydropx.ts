@@ -138,6 +138,10 @@ export async function createSkydropxLabel(params: {
     method: "POST",
     body: JSON.stringify({
       quotation: {
+        carrier: {
+          name: process.env.SKYDROPX_CARRIER ?? "dhl",
+          service_name: process.env.SKYDROPX_SERVICE ?? "express_ltl",
+        },
         address_from: skydropxAddress({
           name: params.origin.name,
           company: params.origin.company,
