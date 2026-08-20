@@ -24,10 +24,13 @@ type Address = {
 
 export default async function AdminEnvioDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ orderId: string }>;
+  searchParams: Promise<{ skydropx_error?: string }>;
 }) {
   const { orderId } = await params;
+  const { skydropx_error: skydropxError } = await searchParams;
   const order = await getOrderWithShipment(orderId);
   if (!order) notFound();
 
@@ -42,6 +45,12 @@ export default async function AdminEnvioDetailPage({
         </Link>
         <h1 className="mt-1 text-xl font-semibold">Orden {order.orderNumber}</h1>
       </div>
+
+      {skydropxError && (
+        <div className="rounded-md border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
+          No se pudo generar la guía con Skydropx: {skydropxError}
+        </div>
+      )}
 
       <div className="grid gap-6 sm:grid-cols-2">
         <div className="flex flex-col gap-4 rounded-lg border border-zinc-200 p-4">

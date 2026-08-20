@@ -52,8 +52,11 @@ export async function generateSkydropxLabelAction(formData: FormData) {
   const address = (order.shippingAddress ?? null) as
     | { street?: string; city?: string; state?: string; zip?: string; references?: string }
     | null;
-  if (!address?.street) return;
+  if (!address?.street) {
+    redirect(`/admin/envios/${orderId}?skydropx_error=Sin+dirección+en+la+orden`);
+  }
 
+  let errorMessage: string | null = null;
   try {
     const result = await createSkydropxLabel({
       orderNumber: order.orderNumber,
@@ -61,23 +64,28 @@ export async function generateSkydropxLabelAction(formData: FormData) {
       customerName: order.customerName ?? order.customerEmail,
       customerPhone: order.customerPhone ?? undefined,
     });
-    if (!result) return;
-
-    await upsertShipment(orderId, {
-      carrier: result.carrier,
-      trackingNumber: result.trackingNumber,
-      trackingUrl: result.trackingUrl ?? undefined,
-      labelUrl: result.labelUrl ?? undefined,
-      cost: result.cost,
-      status: "LABEL_CREATED",
-    });
+    if (!result) {
+      errorMessage = "Skydropx no está configurado (faltan las credenciales)";
+    } else {
+      await upsertShipment(orderId, {
+        carrier: result.carrier,
+        trackingNumber: result.trackingNumber,
+        trackingUrl: result.trackingUrl ?? undefined,
+        labelUrl: result.labelUrl ?? undefined,
+        cost: result.cost,
+        status: "LABEL_CREATED",
+      });
+    }
   } catch (err) {
     console.error("[envios] Skydropx label generation failed:", err);
+    errorMessage = err instanceof Error ? err.message : "Error desconocido";
   }
 
   revalidatePath("/admin/envios");
   revalidatePath(`/admin/envios/${orderId}`);
-  redirect(`/admin/envios/${orderId}`);
+  redirect(
+    `/admin/envios/${orderId}${errorMessage ? `?skydropx_error=${encodeURIComponent(errorMessage)}` : ""}`,
+  );
 }
 
 export async function saveShippingSettingsAction(formData: FormData) {
