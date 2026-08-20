@@ -8,8 +8,9 @@
 // shipments) — confirm field names against the account's actual API docs
 // if responses don't match, since provider APIs shift between plans.
 
-const API_URL = process.env.SKYDROPX_API_URL ?? "https://api.skydropx.com/api/v1";
-const AUTH_URL = process.env.SKYDROPX_AUTH_URL ?? "https://api.skydropx.com/api/v1/oauth/token";
+const API_URL = process.env.SKYDROPX_API_URL ?? "https://api-pro.skydropx.com/api/v1";
+const AUTH_URL =
+  process.env.SKYDROPX_AUTH_URL ?? "https://api-pro.skydropx.com/api/v1/oauth/token";
 
 function isConfigured() {
   return Boolean(process.env.SKYDROPX_CLIENT_ID && process.env.SKYDROPX_CLIENT_SECRET);
@@ -24,11 +25,11 @@ async function getAccessToken(): Promise<string> {
 
   const res = await fetch(AUTH_URL, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
       grant_type: "client_credentials",
-      client_id: process.env.SKYDROPX_CLIENT_ID,
-      client_secret: process.env.SKYDROPX_CLIENT_SECRET,
+      client_id: process.env.SKYDROPX_CLIENT_ID!,
+      client_secret: process.env.SKYDROPX_CLIENT_SECRET!,
     }),
     signal: AbortSignal.timeout(8000),
   });
