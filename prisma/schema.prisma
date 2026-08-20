@@ -199,9 +199,38 @@ model Order {
 
   items               OrderItem[]
   inventoryMovements  InventoryMovement[]
+  shipment            Shipment?
 
   @@index([status])
   @@index([createdAt])
+}
+
+enum ShipmentStatus {
+  PENDING
+  LABEL_CREATED
+  IN_TRANSIT
+  DELIVERED
+  RETURNED
+  CANCELLED
+}
+
+model Shipment {
+  id             String         @id @default(cuid())
+  orderId        String         @unique
+  order          Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  status         ShipmentStatus @default(PENDING)
+  carrier        String?
+  trackingNumber String?
+  trackingUrl    String?
+  labelUrl       String?
+  cost           Decimal?       @db.Decimal(10, 2)
+  notes          String?
+  shippedAt      DateTime?
+  deliveredAt    DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([status])
 }
 
 model OrderItem {

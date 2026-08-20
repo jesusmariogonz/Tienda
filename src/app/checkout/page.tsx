@@ -17,6 +17,11 @@ export default function CheckoutPage() {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [street, setStreet] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
+  const [zip, setZip] = useState("");
+  const [references, setReferences] = useState("");
   const [provider, setProvider] = useState<Provider>("stripe");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,7 +78,12 @@ export default function CheckoutPage() {
             variantId: i.variantId,
             quantity: i.quantity,
           })),
-          customer: { email, name, phone },
+          customer: {
+            email,
+            name,
+            phone,
+            address: { street, city, state, zip, references },
+          },
           couponCode:
             couponStatus && "discount" in couponStatus ? couponStatus.code : undefined,
         }),
@@ -123,6 +133,64 @@ export default function CheckoutPage() {
               onChange={(e) => setPhone(e.target.value)}
               className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
             />
+          </div>
+
+          <div className="flex flex-col gap-3 border-t border-zinc-200 pt-4">
+            <p className="text-sm font-medium">Dirección de envío</p>
+            <div>
+              <label className="mb-1 block text-xs text-zinc-500">Calle y número</label>
+              <input
+                type="text"
+                required
+                value={street}
+                onChange={(e) => setStreet(e.target.value)}
+                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="mb-1 block text-xs text-zinc-500">Ciudad</label>
+                <input
+                  type="text"
+                  required
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs text-zinc-500">Estado</label>
+                <input
+                  type="text"
+                  required
+                  value={state}
+                  onChange={(e) => setState(e.target.value)}
+                  className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-zinc-500">Código postal</label>
+              <input
+                type="text"
+                required
+                value={zip}
+                onChange={(e) => setZip(e.target.value)}
+                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-zinc-500">
+                Referencias (opcional)
+              </label>
+              <input
+                type="text"
+                value={references}
+                onChange={(e) => setReferences(e.target.value)}
+                placeholder="Entre calles, color de casa, etc."
+                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+              />
+            </div>
           </div>
 
           <div>
