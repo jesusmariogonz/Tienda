@@ -2,8 +2,13 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getOrderWithShipment } from "@/server/services/shipments";
 import { formatPrice } from "@/lib/money";
-import { skydropxConfigured } from "@/lib/skydropx";
-import { generateSkydropxLabelAction, saveShipmentAction } from "../actions";
+import { skydropxConfigured, type SkydropxRate } from "@/lib/skydropx";
+import {
+  bookSkydropxAction,
+  cancelSkydropxQuoteAction,
+  quoteSkydropxAction,
+  saveShipmentAction,
+} from "../actions";
 
 const STATUS_OPTIONS = [
   { value: "PENDING", label: "Pendiente" },
@@ -36,6 +41,8 @@ export default async function AdminEnvioDetailPage({
 
   const address = (order.shippingAddress ?? null) as Address | null;
   const canAutoGenerate = skydropxConfigured() && Boolean(address?.street);
+  const pendingRates = (order.shipment?.skydropxQuoteJson as SkydropxRate[] | null) ?? null;
+  const hasLabel = Boolean(order.shipment?.trackingNumber);
 
   return (
     <div className="flex flex-col gap-6">
@@ -99,28 +106,91 @@ export default async function AdminEnvioDetailPage({
         <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-3 rounded-lg border border-zinc-200 p-4">
           <h2 className="text-sm font-semibold">Guía automática (Skydropx)</h2>
-          {skydropxConfigured() ? (
-            <form action={generateSkydropxLabelAction}>
+
+          {!skydropxConfigured() ? (
+            <p className="text-xs text-zinc-400">
+              Skydropx no está conectado todavía (falta SKYDROPX_CLIENT_ID /
+              SKYDROPX_CLIENT_SECRET). Mientras tanto, captura el seguimiento
+              manualmente abajo.
+            </p>
+          ) : hasLabel ? (
+            <p className="text-xs text-green-700">
+              Guía generada con {order.shipment?.carrier}. Puedes editar los
+              detalles abajo si algo cambió.
+            </p>
+          ) : pendingRates && pendingRates.length > 0 ? (
+            <>
+              <p className="text-xs text-zinc-500">
+                Elige la paquetería/tarifa y cómo entregas el paquete:
+              </p>
+              <form action={bookSkydropxAction} className="flex flex-col gap-2">
+                <input type="hidden" name="orderId" value={order.id} />
+                <div className="flex flex-col gap-1.5">
+                  {pendingRates.map((rate, i) => (
+                    <label
+                      key={rate.id}
+                      className="flex cursor-pointer items-start gap-2 rounded-md border border-zinc-200 p-2 text-sm has-[:checked]:border-black has-[:checked]:bg-zinc-50"
+                    >
+                      <input
+                        type="radio"
+                        name="rateId"
+                        value={rate.id}
+                        defaultChecked={i === 0}
+                        className="mt-0.5"
+                      />
+                      <span>
+                        <span className="font-medium">
+                          {rate.providerDisplayName} — {rate.serviceName}
+                        </span>
+                        <br />
+                        <span className="text-zinc-500">
+                          {formatPrice(rate.total)} · {rate.days}{" "}
+                          {rate.days === 1 ? "día" : "días"} ·{" "}
+                          {rate.pickup ? "con recolección" : "solo sucursal"}
+                        </span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+
+                <label className="mt-1 flex items-center gap-2 text-sm">
+                  <input type="checkbox" name="requestPickup" defaultChecked />
+                  Solicitar recolección a domicilio (si la tarifa elegida la
+                  soporta; si no, deja el paquete en sucursal)
+                </label>
+
+                <div className="mt-2 flex gap-2">
+                  <button
+                    type="submit"
+                    className="flex-1 rounded-md bg-black px-3 py-2 text-sm font-medium text-white"
+                  >
+                    Confirmar y generar guía
+                  </button>
+                </div>
+              </form>
+              <form action={cancelSkydropxQuoteAction}>
+                <input type="hidden" name="orderId" value={order.id} />
+                <button type="submit" className="text-xs text-zinc-500 underline">
+                  Cancelar cotización
+                </button>
+              </form>
+            </>
+          ) : (
+            <form action={quoteSkydropxAction}>
               <input type="hidden" name="orderId" value={order.id} />
               <button
                 type="submit"
                 disabled={!canAutoGenerate}
                 className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm disabled:opacity-40"
               >
-                Generar guía con Skydropx
+                Cotizar con Skydropx
               </button>
               {!address?.street && (
                 <p className="mt-1 text-xs text-amber-600">
-                  Esta orden no tiene dirección — no se puede generar la guía.
+                  Esta orden no tiene dirección — no se puede cotizar.
                 </p>
               )}
             </form>
-          ) : (
-            <p className="text-xs text-zinc-400">
-              Skydropx no está conectado todavía (falta SKYDROPX_CLIENT_ID /
-              SKYDROPX_CLIENT_SECRET). Mientras
-              tanto, captura el seguimiento manualmente abajo.
-            </p>
           )}
         </div>
 

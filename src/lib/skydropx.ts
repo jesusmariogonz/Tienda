@@ -7,7 +7,7 @@
 // "Guía para crear envío":
 //   1. POST /api/v1/quotations       → create a quotation
 //   2. GET  /api/v1/quotations/:id   → poll until is_completed, pick a rate
-//   3. POST /api/v1/shipments        → { quotation_id, rate_id } → label
+//   3. POST /api/v1/shipments        → { quotation_id, rate_id, ... } → label
 // (The single-call POST /rate/shipments/ endpoint documented elsewhere
 // consistently 500s — not used.)
 
@@ -85,6 +85,24 @@ export type OriginAddress = {
   email: string;
 };
 
+export type SkydropxRate = {
+  id: string;
+  providerName: string;
+  providerDisplayName: string;
+  serviceName: string;
+  total: number;
+  currency: string;
+  days: number;
+  pickup: boolean;
+  pickupAutomatic: boolean;
+  officeDelivery: boolean;
+};
+
+export type SkydropxQuote = {
+  quotationId: string;
+  rates: SkydropxRate[];
+};
+
 export type SkydropxLabelResult = {
   carrier: string;
   trackingNumber: string;
@@ -119,27 +137,117 @@ function skydropxAddress(a: {
   };
 }
 
+function buildParcel(weightKg?: number) {
+  return {
+    weight: weightKg ?? 1,
+    height: 10,
+    width: 20,
+    length: 30,
+    package_type: process.env.SKYDROPX_PACKAGE_TYPE ?? "4G",
+    consignment_note: process.env.SKYDROPX_CONSIGNMENT_NOTE ?? "53101602",
+  };
+}
+
 const READY_RATE_STATUSES = new Set(["approved", "price_found_internal", "price_found_external"]);
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/** Creates a shipment + label for an order via Skydropx following their
- * documented 3-step flow (quote → poll for rates → book a rate). Returns
- * null if Skydropx isn't configured (no client credentials) so callers can
- * fall back to manual tracking entry. */
-export async function createSkydropxLabel(params: {
-  orderNumber: string;
+type RawRate = {
+  id: string;
+  status: string;
+  provider_name: string;
+  provider_display_name: string;
+  provider_service_name: string;
+  total: string;
+  currency_code: string;
+  days: number;
+  pickup: boolean;
+  pickup_automatic: boolean;
+  office_delivery: boolean;
+};
+
+/** Step 1+2: creates a quotation and polls it until Skydropx finishes
+ * pricing every carrier, returning the usable rates for the admin to pick
+ * from. Returns null if Skydropx isn't configured. */
+export async function quoteSkydropxShipment(params: {
+  origin: OriginAddress;
+  toAddress: ShippingAddress;
+  packageWeightKg?: number;
+}): Promise<SkydropxQuote | null> {
+  if (!isConfigured()) return null;
+
+  const addressFrom = skydropxAddress({
+    name: params.origin.name,
+    company: params.origin.company,
+    phone: params.origin.phone,
+    email: params.origin.email,
+    street: params.origin.street,
+    city: params.origin.city,
+    state: params.origin.state,
+    zip: params.origin.zip,
+  });
+  const addressTo = skydropxAddress({
+    name: "Cliente",
+    company: "N/A",
+    phone: "0000000000",
+    email: "cliente@example.com",
+    street: params.toAddress.street,
+    city: params.toAddress.city,
+    state: params.toAddress.state,
+    zip: params.toAddress.zip,
+    reference: params.toAddress.references,
+  });
+
+  const created = await skydropxFetch("/quotations", {
+    method: "POST",
+    body: JSON.stringify({
+      quotation: {
+        address_from: addressFrom,
+        address_to: addressTo,
+        parcels: [buildParcel(params.packageWeightKg)],
+      },
+    }),
+  });
+
+  let quotation = created;
+  for (let attempt = 0; attempt < 5 && !quotation.is_completed; attempt++) {
+    await sleep(1200);
+    quotation = await skydropxFetch(`/quotations/${created.id}`, { method: "GET" });
+  }
+
+  const rates: SkydropxRate[] = (quotation.rates ?? [])
+    .filter((r: RawRate) => READY_RATE_STATUSES.has(r.status))
+    .map((r: RawRate) => ({
+      id: r.id,
+      providerName: r.provider_name,
+      providerDisplayName: r.provider_display_name,
+      serviceName: r.provider_service_name,
+      total: Number(r.total),
+      currency: r.currency_code,
+      days: r.days,
+      pickup: r.pickup,
+      pickupAutomatic: r.pickup_automatic,
+      officeDelivery: r.office_delivery,
+    }))
+    .sort((a: SkydropxRate, b: SkydropxRate) => a.total - b.total);
+
+  return { quotationId: quotation.id, rates };
+}
+
+/** Step 3: books a previously quoted rate into an actual shipment/label. */
+export async function bookSkydropxShipment(params: {
+  quotationId: string;
+  rateId: string;
   origin: OriginAddress;
   toAddress: ShippingAddress;
   customerName: string;
   customerPhone?: string;
   customerEmail: string;
   packageWeightKg?: number;
-}): Promise<SkydropxLabelResult | null> {
-  if (!isConfigured()) return null;
-
+  requestPickup: boolean;
+}): Promise<SkydropxLabelResult> {
   const addressFrom = skydropxAddress({
     name: params.origin.name,
     company: params.origin.company,
@@ -161,64 +269,23 @@ export async function createSkydropxLabel(params: {
     zip: params.toAddress.zip,
     reference: params.toAddress.references,
   });
-  const parcel = {
-    weight: params.packageWeightKg ?? 1,
-    height: 10,
-    width: 20,
-    length: 30,
-    package_type: process.env.SKYDROPX_PACKAGE_TYPE ?? "4G",
-    consignment_note: process.env.SKYDROPX_CONSIGNMENT_NOTE ?? "53101602",
-  };
+  const parcel = buildParcel(params.packageWeightKg);
 
-  const created = await skydropxFetch("/quotations", {
+  const shipment = await skydropxFetch("/shipments", {
     method: "POST",
     body: JSON.stringify({
-      quotation: {
+      shipment: {
+        quotation_id: params.quotationId,
+        rate_id: params.rateId,
         address_from: addressFrom,
         address_to: addressTo,
         parcels: [parcel],
+        consignment_note: parcel.consignment_note,
+        package_type: parcel.package_type,
+        pickup: params.requestPickup,
       },
     }),
   });
-
-  let quotation = created;
-  for (let attempt = 0; attempt < 5 && !quotation.is_completed; attempt++) {
-    await sleep(1200);
-    quotation = await skydropxFetch(`/quotations/${created.id}`, { method: "GET" });
-  }
-
-  const rate = (quotation.rates ?? [])
-    .filter((r: { status: string }) => READY_RATE_STATUSES.has(r.status))
-    .sort((a: { total: string }, b: { total: string }) => Number(a.total) - Number(b.total))[0];
-
-  if (!rate) {
-    throw new Error(
-      `Sin tarifas disponibles para esta dirección (cotización ${created.id}, is_completed=${quotation.is_completed})`,
-    );
-  }
-
-  const quotedLabel = `${rate.provider_display_name ?? rate.provider_name} ${rate.provider_service_name ?? ""} — $${rate.total} ${quotation.rates?.[0]?.currency_code ?? "MXN"}`;
-
-  let shipment;
-  try {
-    shipment = await skydropxFetch("/shipments", {
-      method: "POST",
-      body: JSON.stringify({
-        shipment: {
-          quotation_id: created.id,
-          rate_id: rate.id,
-          address_from: addressFrom,
-          address_to: addressTo,
-          parcels: [parcel],
-          consignment_note: parcel.consignment_note,
-          package_type: parcel.package_type,
-        },
-      }),
-    });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    throw new Error(`Tarifa cotizada: ${quotedLabel}. ${message}`);
-  }
 
   const trackingNumber =
     shipment.master_tracking_number ?? shipment.tracking_number ?? shipment.data?.tracking_number;
@@ -227,11 +294,11 @@ export async function createSkydropxLabel(params: {
   }
 
   return {
-    carrier: rate.provider_display_name ?? rate.provider_name ?? "Skydropx",
+    carrier: shipment.rate?.provider_display_name ?? "Skydropx",
     trackingNumber,
     trackingUrl: shipment.tracking_url ?? null,
     labelUrl: shipment.label_url ?? null,
-    cost: Number(rate.total ?? 0),
+    cost: Number(shipment.rate?.total ?? 0),
   };
 }
 

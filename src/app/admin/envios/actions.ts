@@ -3,10 +3,26 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
-import { upsertShipment } from "@/server/services/shipments";
+import {
+  clearSkydropxQuote,
+  getOrderWithShipment,
+  saveSkydropxQuote,
+  upsertShipment,
+} from "@/server/services/shipments";
 import { getOriginAddress, saveShippingSettings } from "@/server/services/shipping";
-import { getOrderWithShipment } from "@/server/services/shipments";
-import { createSkydropxLabel } from "@/lib/skydropx";
+import { bookSkydropxShipment, quoteSkydropxShipment } from "@/lib/skydropx";
+
+function truncate(message: string) {
+  // A raw provider error body can be huge and blow past the URL length
+  // limit when passed through the redirect query string.
+  return message.length > 300
+    ? `${message.slice(0, 300)}… (ver logs de Vercel para el detalle completo)`
+    : message;
+}
+
+function errorRedirect(orderId: string, message: string): never {
+  redirect(`/admin/envios/${orderId}?skydropx_error=${encodeURIComponent(truncate(message))}`);
+}
 
 export async function saveShipmentAction(formData: FormData) {
   const session = await auth();
@@ -39,7 +55,7 @@ export async function saveShipmentAction(formData: FormData) {
   redirect(`/admin/envios/${orderId}`);
 }
 
-export async function generateSkydropxLabelAction(formData: FormData) {
+export async function quoteSkydropxAction(formData: FormData) {
   const session = await auth();
   if (!session?.user) return;
 
@@ -52,59 +68,95 @@ export async function generateSkydropxLabelAction(formData: FormData) {
   const address = (order.shippingAddress ?? null) as
     | { street?: string; city?: string; state?: string; zip?: string; references?: string }
     | null;
-  if (!address?.street) {
-    redirect(`/admin/envios/${orderId}?skydropx_error=Sin+dirección+en+la+orden`);
+  if (!address?.street) errorRedirect(orderId, "Sin dirección en la orden");
+
+  const origin = await getOriginAddress();
+  if (!origin) {
+    errorRedirect(orderId, "Falta configurar la dirección de origen en /admin/envios/tarifas");
   }
 
-  let errorMessage: string | null = null;
   try {
-    const origin = await getOriginAddress();
-    if (!origin) {
-      errorMessage = "Falta configurar la dirección de origen en /admin/envios/tarifas";
-    } else {
-      const result = await createSkydropxLabel({
-        orderNumber: order.orderNumber,
-        origin,
-        toAddress: address,
-        customerName: order.customerName ?? order.customerEmail,
-        customerPhone: order.customerPhone ?? undefined,
-        customerEmail: order.customerEmail,
-      });
-      if (!result) {
-        errorMessage = "Skydropx no está configurado (faltan las credenciales)";
-      } else {
-        await upsertShipment(orderId, {
-          carrier: result.carrier,
-          trackingNumber: result.trackingNumber,
-          trackingUrl: result.trackingUrl ?? undefined,
-          labelUrl: result.labelUrl ?? undefined,
-          cost: result.cost,
-          status: "LABEL_CREATED",
-        });
-      }
+    const quote = await quoteSkydropxShipment({ origin, toAddress: address });
+    if (!quote) errorRedirect(orderId, "Skydropx no está configurado (faltan las credenciales)");
+    if (quote.rates.length === 0) {
+      errorRedirect(
+        orderId,
+        `Sin tarifas disponibles para esta dirección (cotización ${quote.quotationId})`,
+      );
     }
+    await saveSkydropxQuote(orderId, quote.quotationId, quote.rates);
   } catch (err) {
-    console.error("[envios] Skydropx label generation failed:", err);
-    errorMessage =
-      err instanceof Error
-        ? err.name === "TimeoutError" || err.name === "AbortError"
-          ? "Skydropx no respondió a tiempo (timeout)"
-          : err.message
-        : "Error desconocido";
+    console.error("[envios] Skydropx quote failed:", err);
+    errorRedirect(orderId, err instanceof Error ? err.message : "Error desconocido");
   }
 
-  // Truncate — a raw provider error body can be huge and blow past the
-  // URL length limit when passed through the redirect query string. The
-  // full message is still in the server logs above.
-  if (errorMessage && errorMessage.length > 300) {
-    errorMessage = `${errorMessage.slice(0, 300)}… (ver logs de Vercel para el detalle completo)`;
+  revalidatePath(`/admin/envios/${orderId}`);
+  redirect(`/admin/envios/${orderId}`);
+}
+
+export async function bookSkydropxAction(formData: FormData) {
+  const session = await auth();
+  if (!session?.user) return;
+
+  const orderId = formData.get("orderId") as string;
+  const rateId = formData.get("rateId") as string;
+  const requestPickup = formData.get("requestPickup") === "on";
+  if (!orderId || !rateId) return;
+
+  const order = await getOrderWithShipment(orderId);
+  if (!order?.shipment?.skydropxQuotationId) return;
+
+  const address = (order.shippingAddress ?? null) as
+    | { street?: string; city?: string; state?: string; zip?: string; references?: string }
+    | null;
+  if (!address?.street) errorRedirect(orderId, "Sin dirección en la orden");
+
+  const origin = await getOriginAddress();
+  if (!origin) {
+    errorRedirect(orderId, "Falta configurar la dirección de origen en /admin/envios/tarifas");
+  }
+
+  try {
+    const result = await bookSkydropxShipment({
+      quotationId: order.shipment.skydropxQuotationId,
+      rateId,
+      origin,
+      toAddress: address,
+      customerName: order.customerName ?? order.customerEmail,
+      customerPhone: order.customerPhone ?? undefined,
+      customerEmail: order.customerEmail,
+      requestPickup,
+    });
+
+    await upsertShipment(orderId, {
+      carrier: result.carrier,
+      trackingNumber: result.trackingNumber,
+      trackingUrl: result.trackingUrl ?? undefined,
+      labelUrl: result.labelUrl ?? undefined,
+      cost: result.cost,
+      status: "LABEL_CREATED",
+    });
+    await clearSkydropxQuote(orderId);
+  } catch (err) {
+    console.error("[envios] Skydropx booking failed:", err);
+    errorRedirect(orderId, err instanceof Error ? err.message : "Error desconocido");
   }
 
   revalidatePath("/admin/envios");
   revalidatePath(`/admin/envios/${orderId}`);
-  redirect(
-    `/admin/envios/${orderId}${errorMessage ? `?skydropx_error=${encodeURIComponent(errorMessage)}` : ""}`,
-  );
+  redirect(`/admin/envios/${orderId}`);
+}
+
+export async function cancelSkydropxQuoteAction(formData: FormData) {
+  const session = await auth();
+  if (!session?.user) return;
+
+  const orderId = formData.get("orderId") as string;
+  if (!orderId) return;
+
+  await clearSkydropxQuote(orderId);
+  revalidatePath(`/admin/envios/${orderId}`);
+  redirect(`/admin/envios/${orderId}`);
 }
 
 export async function saveShippingSettingsAction(formData: FormData) {

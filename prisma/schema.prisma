@@ -246,8 +246,14 @@ model Shipment {
   notes          String?
   shippedAt      DateTime?
   deliveredAt    DateTime?
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+
+  // Pending Skydropx quote, shown to the admin as a rate picker before
+  // booking a label — cleared once a rate is booked.
+  skydropxQuotationId String?
+  skydropxQuoteJson   Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([status])
 }

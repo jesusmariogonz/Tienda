@@ -59,3 +59,22 @@ export async function upsertShipment(orderId: string, input: ShipmentInput) {
     update: data,
   });
 }
+
+export async function saveSkydropxQuote(
+  orderId: string,
+  quotationId: string,
+  rates: unknown,
+) {
+  return prisma.shipment.upsert({
+    where: { orderId },
+    create: { orderId, skydropxQuotationId: quotationId, skydropxQuoteJson: rates as Prisma.InputJsonValue },
+    update: { skydropxQuotationId: quotationId, skydropxQuoteJson: rates as Prisma.InputJsonValue },
+  });
+}
+
+export async function clearSkydropxQuote(orderId: string) {
+  await prisma.shipment.updateMany({
+    where: { orderId },
+    data: { skydropxQuotationId: null, skydropxQuoteJson: Prisma.JsonNull },
+  });
+}
