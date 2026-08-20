@@ -78,7 +78,12 @@ export async function generateSkydropxLabelAction(formData: FormData) {
     }
   } catch (err) {
     console.error("[envios] Skydropx label generation failed:", err);
-    errorMessage = err instanceof Error ? err.message : "Error desconocido";
+    errorMessage =
+      err instanceof Error
+        ? err.name === "TimeoutError" || err.name === "AbortError"
+          ? "Skydropx no respondió a tiempo (timeout)"
+          : err.message
+        : "Error desconocido";
   }
 
   revalidatePath("/admin/envios");

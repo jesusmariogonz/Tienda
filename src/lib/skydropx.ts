@@ -30,6 +30,7 @@ async function getAccessToken(): Promise<string> {
       client_id: process.env.SKYDROPX_CLIENT_ID,
       client_secret: process.env.SKYDROPX_CLIENT_SECRET,
     }),
+    signal: AbortSignal.timeout(8000),
   });
   if (!res.ok) {
     const body = await res.text().catch(() => "");
@@ -53,6 +54,7 @@ async function skydropxFetch(path: string, init: RequestInit) {
       Authorization: `Bearer ${token}`,
       ...(init.headers ?? {}),
     },
+    signal: AbortSignal.timeout(8000),
   });
   if (!res.ok) {
     const body = await res.text().catch(() => "");
