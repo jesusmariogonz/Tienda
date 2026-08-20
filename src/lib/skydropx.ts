@@ -197,20 +197,28 @@ export async function createSkydropxLabel(params: {
     );
   }
 
-  const shipment = await skydropxFetch("/shipments", {
-    method: "POST",
-    body: JSON.stringify({
-      shipment: {
-        quotation_id: created.id,
-        rate_id: rate.id,
-        address_from: addressFrom,
-        address_to: addressTo,
-        parcels: [parcel],
-        consignment_note: parcel.consignment_note,
-        package_type: parcel.package_type,
-      },
-    }),
-  });
+  const quotedLabel = `${rate.provider_display_name ?? rate.provider_name} ${rate.provider_service_name ?? ""} — $${rate.total} ${quotation.rates?.[0]?.currency_code ?? "MXN"}`;
+
+  let shipment;
+  try {
+    shipment = await skydropxFetch("/shipments", {
+      method: "POST",
+      body: JSON.stringify({
+        shipment: {
+          quotation_id: created.id,
+          rate_id: rate.id,
+          address_from: addressFrom,
+          address_to: addressTo,
+          parcels: [parcel],
+          consignment_note: parcel.consignment_note,
+          package_type: parcel.package_type,
+        },
+      }),
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(`Tarifa cotizada: ${quotedLabel}. ${message}`);
+  }
 
   const trackingNumber =
     shipment.master_tracking_number ?? shipment.tracking_number ?? shipment.data?.tracking_number;
