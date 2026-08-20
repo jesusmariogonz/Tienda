@@ -108,7 +108,8 @@ export default async function AdminEnvioDetailPage({
             </form>
           ) : (
             <p className="text-xs text-zinc-400">
-              Skydropx no está conectado todavía (falta SKYDROPX_API_KEY). Mientras
+              Skydropx no está conectado todavía (falta SKYDROPX_CLIENT_ID /
+              SKYDROPX_CLIENT_SECRET). Mientras
               tanto, captura el seguimiento manualmente abajo.
             </p>
           )}
