@@ -8,6 +8,19 @@ import { formatPrice } from "@/lib/money";
 type Provider = "stripe" | "mercadopago" | "demo";
 
 const DEMO_CHECKOUT_ENABLED = process.env.NEXT_PUBLIC_DEMO_CHECKOUT === "true";
+const REMEMBER_KEY = "tienda-checkout-remember";
+
+type RememberedData = {
+  email: string;
+  name: string;
+  phone: string;
+  street: string;
+  city: string;
+  state: string;
+  zip: string;
+  colonia: string;
+  references: string;
+};
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -30,10 +43,59 @@ export default function CheckoutPage() {
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
   const [zip, setZip] = useState("");
+  const [colonia, setColonia] = useState("");
+  const [colonias, setColonias] = useState<string[]>([]);
+  const [zipLookupStatus, setZipLookupStatus] = useState<"idle" | "loading" | "error">("idle");
   const [references, setReferences] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [provider, setProvider] = useState<Provider>("stripe");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(REMEMBER_KEY);
+      if (!saved) return;
+      const data: RememberedData = JSON.parse(saved);
+      setEmail(data.email ?? "");
+      setName(data.name ?? "");
+      setPhone(data.phone ?? "");
+      setStreet(data.street ?? "");
+      setCity(data.city ?? "");
+      setState(data.state ?? "");
+      setZip(data.zip ?? "");
+      setColonia(data.colonia ?? "");
+      setReferences(data.references ?? "");
+      setRememberMe(true);
+    } catch {
+      // ignore malformed/inaccessible storage
+    }
+  }, []);
+
+  useEffect(() => {
+    if (zip.length !== 5) {
+      setColonias([]);
+      return;
+    }
+    setZipLookupStatus("loading");
+    const timeout = setTimeout(() => {
+      fetch(`/api/postal-code/${zip}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.error) {
+            setZipLookupStatus("error");
+            return;
+          }
+          setCity(data.city);
+          setState(data.state);
+          setColonias(data.colonias ?? []);
+          setColonia((prev) => (data.colonias?.includes(prev) ? prev : data.colonias?.[0] ?? ""));
+          setZipLookupStatus("idle");
+        })
+        .catch(() => setZipLookupStatus("error"));
+    }, 400);
+    return () => clearTimeout(timeout);
+  }, [zip]);
 
   const [couponCode, setCouponCode] = useState("");
   const [couponStatus, setCouponStatus] = useState<
@@ -78,6 +140,21 @@ export default function CheckoutPage() {
     setLoading(true);
     setError(null);
 
+    if (rememberMe) {
+      const data: RememberedData = { email, name, phone, street, city, state, zip, colonia, references };
+      try {
+        localStorage.setItem(REMEMBER_KEY, JSON.stringify(data));
+      } catch {
+        // ignore — remember-me is a convenience, not required
+      }
+    } else {
+      try {
+        localStorage.removeItem(REMEMBER_KEY);
+      } catch {
+        // ignore
+      }
+    }
+
     try {
       const res = await fetch(`/api/checkout/${provider}`, {
         method: "POST",
@@ -91,7 +168,7 @@ export default function CheckoutPage() {
             email,
             name,
             phone,
-            address: { street, city, state, zip, references },
+            address: { street, city, state, zip, colonia, references },
           },
           couponCode:
             couponStatus && "discount" in couponStatus ? couponStatus.code : undefined,
@@ -146,16 +223,45 @@ export default function CheckoutPage() {
 
           <div className="flex flex-col gap-3 border-t border-zinc-200 pt-4">
             <p className="text-sm font-medium">Dirección de envío</p>
+
             <div>
-              <label className="mb-1 block text-xs text-zinc-500">Calle y número</label>
+              <label className="mb-1 block text-xs text-zinc-500">Código postal</label>
               <input
                 type="text"
                 required
-                value={street}
-                onChange={(e) => setStreet(e.target.value)}
+                inputMode="numeric"
+                maxLength={5}
+                value={zip}
+                onChange={(e) => setZip(e.target.value.replace(/\D/g, ""))}
                 className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
               />
+              {zipLookupStatus === "loading" && (
+                <p className="mt-1 text-xs text-zinc-400">Buscando código postal…</p>
+              )}
+              {zipLookupStatus === "error" && (
+                <p className="mt-1 text-xs text-zinc-400">
+                  No encontramos ese código postal — llena ciudad y estado a mano.
+                </p>
+              )}
             </div>
+
+            {colonias.length > 0 && (
+              <div>
+                <label className="mb-1 block text-xs text-zinc-500">Colonia</label>
+                <select
+                  value={colonia}
+                  onChange={(e) => setColonia(e.target.value)}
+                  className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+                >
+                  {colonias.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="mb-1 block text-xs text-zinc-500">Ciudad</label>
@@ -178,16 +284,18 @@ export default function CheckoutPage() {
                 />
               </div>
             </div>
+
             <div>
-              <label className="mb-1 block text-xs text-zinc-500">Código postal</label>
+              <label className="mb-1 block text-xs text-zinc-500">Calle y número</label>
               <input
                 type="text"
                 required
-                value={zip}
-                onChange={(e) => setZip(e.target.value)}
+                value={street}
+                onChange={(e) => setStreet(e.target.value)}
                 className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
               />
             </div>
+
             <div>
               <label className="mb-1 block text-xs text-zinc-500">
                 Referencias (opcional)
@@ -200,6 +308,15 @@ export default function CheckoutPage() {
                 className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
               />
             </div>
+
+            <label className="flex items-center gap-2 text-sm text-zinc-600">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+              />
+              Recuérdame — guardar mis datos en este dispositivo para la próxima compra
+            </label>
           </div>
 
           <div>

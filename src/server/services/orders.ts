@@ -72,9 +72,15 @@ export async function createPendingOrder(
     if (item.quantity < 1 || item.quantity > available) {
       throw new Error(`Stock insuficiente para ${variant.product.name}`);
     }
-    const unitPrice = variant.price
-      ? Number(variant.price)
-      : Number(variant.product.basePrice);
+    let unitPrice = variant.price ? Number(variant.price) : Number(variant.product.basePrice);
+    if (
+      variant.product.wholesaleEnabled &&
+      variant.product.wholesaleMinQty &&
+      variant.product.wholesaleDiscountPercent &&
+      item.quantity >= variant.product.wholesaleMinQty
+    ) {
+      unitPrice *= 1 - Number(variant.product.wholesaleDiscountPercent) / 100;
+    }
     subtotal += unitPrice * item.quantity;
     orderItemsData.push({
       variantId: variant.id,

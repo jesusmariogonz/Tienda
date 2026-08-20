@@ -49,6 +49,11 @@ export default async function EditProductPage({
               quantity: v.inventory?.quantity ?? 0,
               lowStockThreshold: v.inventory?.lowStockThreshold ?? 5,
             })),
+          wholesaleEnabled: product.wholesaleEnabled,
+          wholesaleMinQty: product.wholesaleMinQty,
+          wholesaleDiscountPercent: product.wholesaleDiscountPercent
+            ? Number(product.wholesaleDiscountPercent)
+            : null,
         }}
       />
     </div>

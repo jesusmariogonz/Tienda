@@ -52,6 +52,9 @@ export type ProductInput = {
   active: boolean;
   imageUrls: string[];
   variants: VariantInput[];
+  wholesaleEnabled?: boolean;
+  wholesaleMinQty?: number | null;
+  wholesaleDiscountPercent?: number | null;
 };
 
 export async function createProduct(input: ProductInput) {
@@ -75,6 +78,9 @@ export async function createProduct(input: ProductInput) {
       basePrice: input.basePrice,
       active: input.active,
       categoryId,
+      wholesaleEnabled: input.wholesaleEnabled ?? false,
+      wholesaleMinQty: input.wholesaleMinQty ?? null,
+      wholesaleDiscountPercent: input.wholesaleDiscountPercent ?? null,
       images: {
         create: input.imageUrls.map((url, i) => ({ url, position: i })),
       },
@@ -117,6 +123,9 @@ export async function updateProduct(id: string, input: ProductInput) {
       basePrice: input.basePrice,
       active: input.active,
       categoryId,
+      wholesaleEnabled: input.wholesaleEnabled ?? false,
+      wholesaleMinQty: input.wholesaleMinQty ?? null,
+      wholesaleDiscountPercent: input.wholesaleDiscountPercent ?? null,
     },
   });
 

@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useCart } from "@/store/cart";
+import { useCartUI } from "@/store/cart-ui";
 import { appName } from "@/lib/config";
 import { MegaMenu } from "./mega-menu";
 
@@ -13,6 +14,7 @@ export function SiteHeader({
   categories: { slug: string; name: string }[];
 }) {
   const items = useCart((s) => s.items);
+  const openCart = useCartUI((s) => s.open);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => setMounted(true), []);
@@ -37,8 +39,9 @@ export function SiteHeader({
           </span>
         </Link>
       </div>
-      <Link
-        href="/carrito"
+      <button
+        type="button"
+        onClick={openCart}
         className="relative text-sm font-semibold tracking-wide text-white uppercase"
       >
         Carrito
@@ -47,7 +50,7 @@ export function SiteHeader({
             {count}
           </span>
         )}
-      </Link>
+      </button>
     </header>
   );
 }

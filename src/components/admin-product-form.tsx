@@ -21,6 +21,9 @@ export type ProductFormValues = {
   active: boolean;
   imageUrls: string[];
   variants: ProductFormVariant[];
+  wholesaleEnabled?: boolean;
+  wholesaleMinQty?: number | null;
+  wholesaleDiscountPercent?: number | null;
 };
 
 export function AdminProductForm({
@@ -121,6 +124,47 @@ export function AdminProductForm({
         />
         Producto activo (visible en la tienda)
       </label>
+
+      <div className="flex flex-col gap-3 rounded-md border border-purple-200 bg-purple-50 p-3">
+        <label className="flex items-center gap-2 text-sm font-medium">
+          <input
+            type="checkbox"
+            name="wholesaleEnabled"
+            defaultChecked={initialValues?.wholesaleEnabled ?? false}
+          />
+          Habilitar precio de mayoreo para este producto
+        </label>
+        <p className="text-xs text-zinc-500">
+          Úsalo en tus productos de mayor precio/margen — los que realmente
+          impulsan compras al mayoreo.
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="mb-1 block text-xs text-zinc-500">
+              Cantidad mínima (piezas)
+            </label>
+            <input
+              type="number"
+              min="2"
+              name="wholesaleMinQty"
+              defaultValue={initialValues?.wholesaleMinQty ?? ""}
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-zinc-500">Descuento (%)</label>
+            <input
+              type="number"
+              min="1"
+              max="90"
+              step="0.1"
+              name="wholesaleDiscountPercent"
+              defaultValue={initialValues?.wholesaleDiscountPercent ?? ""}
+              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+            />
+          </div>
+        </div>
+      </div>
 
       <div>
         <p className="mb-2 text-sm font-medium">Variantes (talla / color)</p>

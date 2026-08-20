@@ -73,6 +73,14 @@ export default async function ProductPage({
             image={images[0]?.url}
             basePrice={basePrice}
             variants={variants}
+            wholesale={
+              product.wholesaleEnabled && product.wholesaleMinQty && product.wholesaleDiscountPercent
+                ? {
+                    minQty: product.wholesaleMinQty,
+                    discountPercent: Number(product.wholesaleDiscountPercent),
+                  }
+                : null
+            }
           />
         </div>
       </div>

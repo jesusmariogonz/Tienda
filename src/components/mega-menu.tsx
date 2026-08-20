@@ -18,11 +18,11 @@ export function MegaMenu({
         onClick={() => setOpen((v) => !v)}
         aria-label="Abrir menú"
         aria-expanded={open}
-        className="flex h-9 w-9 flex-col items-center justify-center gap-1.5"
+        className="flex h-9 w-9 flex-col items-center justify-center gap-1.5 sm:h-12 sm:w-12 sm:gap-2"
       >
-        <span className="h-0.5 w-6 bg-white" />
-        <span className="h-0.5 w-6 bg-white" />
-        <span className="h-0.5 w-6 bg-white" />
+        <span className="h-0.5 w-6 bg-white sm:h-[3px] sm:w-8" />
+        <span className="h-0.5 w-6 bg-white sm:h-[3px] sm:w-8" />
+        <span className="h-0.5 w-6 bg-white sm:h-[3px] sm:w-8" />
       </button>
 
       {open && (
@@ -34,7 +34,7 @@ export function MegaMenu({
             onClick={() => setOpen(false)}
             className="fixed inset-0 z-30 cursor-default bg-black/30"
           />
-          <div className="absolute top-full left-0 z-40 mt-3 flex w-[min(90vw,640px)] overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-xl">
+          <div className="absolute top-full left-0 z-40 mt-3 flex w-[min(90vw,720px)] overflow-hidden rounded-lg border border-zinc-200 bg-white text-base shadow-xl sm:text-base">
             <div className="w-48 shrink-0 border-r border-zinc-100 bg-zinc-50 py-2">
               <MenuItem
                 label="Categorías"

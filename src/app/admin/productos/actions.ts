@@ -29,6 +29,10 @@ function parseInput(formData: FormData): ProductInput {
 
   const imageUrls = (formData.getAll("imageUrl") as string[]).filter(Boolean);
 
+  const wholesaleEnabled = formData.get("wholesaleEnabled") === "on";
+  const wholesaleMinQtyRaw = formData.get("wholesaleMinQty") as string;
+  const wholesaleDiscountRaw = formData.get("wholesaleDiscountPercent") as string;
+
   return {
     name: formData.get("name") as string,
     description: (formData.get("description") as string) || undefined,
@@ -37,6 +41,11 @@ function parseInput(formData: FormData): ProductInput {
     active: formData.get("active") === "on",
     imageUrls,
     variants,
+    wholesaleEnabled,
+    wholesaleMinQty:
+      wholesaleEnabled && wholesaleMinQtyRaw ? Number(wholesaleMinQtyRaw) : null,
+    wholesaleDiscountPercent:
+      wholesaleEnabled && wholesaleDiscountRaw ? Number(wholesaleDiscountRaw) : null,
   };
 }
 

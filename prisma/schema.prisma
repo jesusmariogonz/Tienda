@@ -58,6 +58,13 @@ model Product {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  // Wholesale (mayoreo) pricing — buying wholesaleMinQty+ units of this
+  // product's variants gets wholesaleDiscountPercent off, meant for the
+  // handful of higher-ticket products that actually drive bulk orders.
+  wholesaleEnabled         Boolean  @default(false)
+  wholesaleMinQty          Int?
+  wholesaleDiscountPercent Decimal? @db.Decimal(5, 2)
+
   images   ProductImage[]
   variants ProductVariant[]
 

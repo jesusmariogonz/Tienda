@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/store/cart";
+import { useCartUI } from "@/store/cart-ui";
 import { formatPrice } from "@/lib/money";
 import { resolveColorHex } from "@/lib/color-names";
 
@@ -17,21 +18,26 @@ type Variant = {
   stock: number;
 };
 
+type Wholesale = { minQty: number; discountPercent: number };
+
 export function ProductVariantPicker({
   productSlug,
   productName,
   image,
   basePrice,
   variants,
+  wholesale,
 }: {
   productSlug: string;
   productName: string;
   image?: string;
   basePrice: number;
   variants: Variant[];
+  wholesale?: Wholesale | null;
 }) {
   const router = useRouter();
   const addItem = useCart((s) => s.addItem);
+  const openCart = useCartUI((s) => s.open);
 
   const sizes = useMemo(
     () => Array.from(new Set(variants.map((v) => v.size))),
@@ -56,7 +62,42 @@ export function ProductVariantPicker({
   const isLowStock = !!selected && selected.stock > 0 && selected.stock <= LOW_STOCK_THRESHOLD;
   const maxQuantity = selected?.stock ?? 1;
 
+  const wholesaleActive = Boolean(wholesale && quantity >= wholesale.minQty);
+  const unitPrice =
+    selected && wholesaleActive && wholesale
+      ? selected.price * (1 - wholesale.discountPercent / 100)
+      : (selected?.price ?? basePrice);
+
+  function selectColor(name: string) {
+    setColor(name);
+    setQuantity(1);
+  }
+
+  function selectSize(s: string) {
+    setSize(s);
+    setQuantity(1);
+  }
+
   function handleAdd() {
+    if (!selected || outOfStock) return;
+    addItem({
+      variantId: selected.id,
+      productSlug,
+      productName,
+      image,
+      size: selected.size,
+      color: selected.color,
+      price: unitPrice,
+      quantity,
+      maxQuantity: selected.stock,
+    });
+    setAdded(true);
+    setQuantity(1);
+    openCart();
+    setTimeout(() => setAdded(false), 1500);
+  }
+
+  function handleBuyNow() {
     if (!selected || outOfStock) return;
     addItem({
       variantId: selected.id,
@@ -69,16 +110,28 @@ export function ProductVariantPicker({
       quantity,
       maxQuantity: selected.stock,
     });
-    setAdded(true);
-    setQuantity(1);
-    setTimeout(() => setAdded(false), 1500);
+    router.push("/checkout");
   }
 
   return (
     <div className="flex flex-col gap-6">
-      <p className="text-xl font-medium">
-        {formatPrice(selected?.price ?? basePrice)}
-      </p>
+      <div>
+        <p className="text-xl font-medium">
+          {formatPrice(unitPrice)}
+          {wholesaleActive && (
+            <span className="ml-2 text-sm font-normal text-zinc-400 line-through">
+              {formatPrice(selected?.price ?? basePrice)}
+            </span>
+          )}
+        </p>
+        {wholesale && (
+          <p className="mt-1 text-xs text-purple-700">
+            {wholesaleActive
+              ? `¡Precio mayoreo aplicado! -${wholesale.discountPercent}%`
+              : `Compra ${wholesale.minQty}+ piezas y obtén -${wholesale.discountPercent}%`}
+          </p>
+        )}
+      </div>
 
       <div>
         <p className="mb-2 text-sm font-medium text-zinc-700">Color</p>
@@ -87,7 +140,7 @@ export function ProductVariantPicker({
             <button
               key={c.name}
               type="button"
-              onClick={() => setColor(c.name)}
+              onClick={() => selectColor(c.name)}
               title={c.name}
               aria-label={c.name}
               className={`flex flex-col items-center gap-1 ${
@@ -124,7 +177,7 @@ export function ProductVariantPicker({
             <button
               key={s}
               type="button"
-              onClick={() => setSize(s)}
+              onClick={() => selectSize(s)}
               className={`rounded-full border px-4 py-1.5 text-sm ${
                 s === size
                   ? "border-black bg-black text-white"
@@ -177,22 +230,24 @@ export function ProductVariantPicker({
       )}
       {outOfStock && <p className="text-sm text-red-600">Variante agotada</p>}
 
-      <button
-        type="button"
-        onClick={handleAdd}
-        disabled={outOfStock}
-        className="w-full rounded-full bg-black py-3.5 text-sm font-medium text-white disabled:opacity-40"
-      >
-        {added ? "Agregado" : "Agregar al carrito"}
-      </button>
-
-      <button
-        type="button"
-        onClick={() => router.push("/carrito")}
-        className="w-full rounded-full border border-black py-3.5 text-sm font-medium"
-      >
-        Ver carrito
-      </button>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={handleAdd}
+          disabled={outOfStock}
+          className="flex-1 rounded-full border border-black py-3.5 text-sm font-medium disabled:opacity-40"
+        >
+          {added ? "Agregado" : "Agregar al carrito"}
+        </button>
+        <button
+          type="button"
+          onClick={handleBuyNow}
+          disabled={outOfStock}
+          className="flex-1 rounded-full bg-black py-3.5 text-sm font-medium text-white disabled:opacity-40"
+        >
+          Comprar ahora
+        </button>
+      </div>
     </div>
   );
 }

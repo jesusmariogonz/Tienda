@@ -7,19 +7,21 @@ export type CatalogFilters = {
   sort?: "recientes" | "precio-asc" | "precio-desc";
 };
 
-export function listActiveProducts(filters: CatalogFilters = {}) {
+// Strips accents/diacritics so "polera"/"pólera" match — Postgres
+// `contains` is case-insensitive but not accent-insensitive, and search
+// input from mobile keyboards especially tends to be inconsistent about
+// accents.
+function normalize(text: string) {
+  return text
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase();
+}
+
+export async function listActiveProducts(filters: CatalogFilters = {}) {
   const where: Prisma.ProductWhereInput = {
     active: true,
     ...(filters.category ? { category: { slug: filters.category } } : {}),
-    ...(filters.q
-      ? {
-          OR: [
-            { name: { contains: filters.q, mode: "insensitive" } },
-            { description: { contains: filters.q, mode: "insensitive" } },
-            { category: { name: { contains: filters.q, mode: "insensitive" } } },
-          ],
-        }
-      : {}),
   };
 
   const orderBy: Prisma.ProductOrderByWithRelationInput =
@@ -29,7 +31,7 @@ export function listActiveProducts(filters: CatalogFilters = {}) {
         ? { basePrice: "desc" }
         : { createdAt: "desc" };
 
-  return prisma.product.findMany({
+  const products = await prisma.product.findMany({
     where,
     include: {
       images: { orderBy: { position: "asc" }, take: 1 },
@@ -40,6 +42,23 @@ export function listActiveProducts(filters: CatalogFilters = {}) {
       },
     },
     orderBy,
+  });
+
+  if (!filters.q) return products;
+
+  const q = normalize(filters.q);
+  return products.filter(
+    (p) =>
+      normalize(p.name).includes(q) ||
+      (p.description && normalize(p.description).includes(q)) ||
+      (p.category && normalize(p.category.name).includes(q)),
+  );
+}
+
+export function listWholesaleProducts() {
+  return prisma.product.findMany({
+    where: { active: true, wholesaleEnabled: true },
+    select: { name: true, wholesaleMinQty: true, wholesaleDiscountPercent: true },
   });
 }
 
