@@ -93,6 +93,13 @@ export async function generateSkydropxLabelAction(formData: FormData) {
         : "Error desconocido";
   }
 
+  // Truncate — a raw provider error body can be huge and blow past the
+  // URL length limit when passed through the redirect query string. The
+  // full message is still in the server logs above.
+  if (errorMessage && errorMessage.length > 300) {
+    errorMessage = `${errorMessage.slice(0, 300)}… (ver logs de Vercel para el detalle completo)`;
+  }
+
   revalidatePath("/admin/envios");
   revalidatePath(`/admin/envios/${orderId}`);
   redirect(
