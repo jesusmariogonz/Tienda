@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/store/cart";
 import { formatPrice } from "@/lib/money";
+import { resolveColorHex } from "@/lib/color-names";
 
 const LOW_STOCK_THRESHOLD = 3;
 
@@ -39,7 +40,10 @@ export function ProductVariantPicker({
   const colors = useMemo(() => {
     const seen = new Map<string, string | null>();
     for (const v of variants) if (!seen.has(v.color)) seen.set(v.color, v.colorHex);
-    return Array.from(seen.entries()).map(([name, hex]) => ({ name, hex }));
+    return Array.from(seen.entries()).map(([name, hex]) => ({
+      name,
+      hex: resolveColorHex(name, hex),
+    }));
   }, [variants]);
 
   const [size, setSize] = useState<string | null>(sizes[0] ?? null);
