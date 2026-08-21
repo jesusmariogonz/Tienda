@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { appName } from "@/lib/config";
 import { SiteHeader } from "@/components/site-header";
+import { SiteFooter } from "@/components/site-footer";
 import { WhatsappButton } from "@/components/whatsapp-button";
 import { CartDrawer } from "@/components/cart-drawer";
 import { WholesaleMarquee } from "@/components/wholesale-marquee";
@@ -42,6 +43,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <WholesaleMarquee products={wholesaleProducts} />
         <SiteHeader categories={categories} />
         {children}
+        <SiteFooter />
         <CartDrawer />
         <WhatsappButton />
       </body>

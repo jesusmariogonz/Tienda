@@ -17,7 +17,7 @@ export function WhatsappButton() {
     } catch {
       return;
     }
-    const timeout = setTimeout(() => {
+    const showTimeout = setTimeout(() => {
       setShowPopup(true);
       try {
         sessionStorage.setItem(POPUP_SHOWN_KEY, "1");
@@ -25,8 +25,14 @@ export function WhatsappButton() {
         // ignore
       }
     }, 4000);
-    return () => clearTimeout(timeout);
+    return () => clearTimeout(showTimeout);
   }, []);
+
+  useEffect(() => {
+    if (!showPopup) return;
+    const hideTimeout = setTimeout(() => setShowPopup(false), 8000);
+    return () => clearTimeout(hideTimeout);
+  }, [showPopup]);
 
   return (
     <div className="fixed right-4 bottom-4 z-30 flex flex-col items-end gap-2">

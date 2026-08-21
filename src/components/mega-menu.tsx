@@ -49,9 +49,9 @@ export function MegaMenu({
       </button>
 
       {open && (
-        <div className="absolute top-full left-0 z-40 w-[min(90vw,720px)] pt-2">
+        <div className="absolute top-full left-0 z-40 w-[min(94vw,720px)] pt-2">
           <div className="flex overflow-hidden rounded-lg border border-zinc-200 bg-white text-base shadow-xl">
-            <div className="w-48 shrink-0 border-r-2 border-zinc-200 bg-zinc-50 py-2">
+            <div className="w-36 shrink-0 border-r-2 border-zinc-200 bg-zinc-50 py-2 sm:w-48">
               <MenuItem
                 label="Categorías"
                 active={hovered === "categorias"}
@@ -73,13 +73,13 @@ export function MegaMenu({
             <div className="flex-1 p-4">
               {hovered === "categorias" ? (
                 categories.length > 0 ? (
-                  <div className="grid grid-cols-2 gap-1">
+                  <div className="grid grid-cols-[repeat(auto-fill,minmax(110px,1fr))] gap-x-3 gap-y-1">
                     {categories.map((c) => (
                       <Link
                         key={c.slug}
                         href={`/?category=${c.slug}`}
                         onClick={() => setOpen(false)}
-                        className="rounded-md px-2 py-1.5 text-sm text-zinc-700 hover:bg-zinc-50"
+                        className="truncate rounded-md px-2 py-1.5 text-sm text-zinc-700 hover:bg-zinc-50"
                       >
                         {c.name}
                       </Link>

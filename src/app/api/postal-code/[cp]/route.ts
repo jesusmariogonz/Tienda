@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { buscaCP } from "@webrek/mx-cp";
 
-// Looks up city/state/colonias for a Mexican postal code via a free public
-// API. Best-effort: any failure (network, unexpected shape, rate limit)
-// just returns "not found" instead of breaking checkout — the address
-// fields stay manually editable either way.
+// Looks up city/state/colonias for a Mexican postal code from a bundled
+// SEPOMEX dataset — no external API call, so no third-party uptime/rate
+// limits to worry about. Covers all ~32,467 official postal codes.
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ cp: string }> }) {
   const { cp } = await params;
   if (!/^\d{5}$/.test(cp)) {
@@ -11,20 +11,15 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ cp:
   }
 
   try {
-    const res = await fetch(`https://api-sepomex.hckdrk.mx/query/info_cp/${cp}?type=simplified`, {
-      signal: AbortSignal.timeout(5000),
-    });
-    if (!res.ok) throw new Error(`status ${res.status}`);
-    const data = await res.json();
-    const info = data?.response;
-    if (!info) throw new Error("sin datos");
+    const info = await buscaCP(cp);
+    if (!info) {
+      return NextResponse.json({ error: "Código postal no encontrado" }, { status: 404 });
+    }
 
     return NextResponse.json({
-      city: info.municipio ?? "",
-      state: info.estado ?? "",
-      colonias: (Array.isArray(info.asentamiento) ? info.asentamiento : [info.asentamiento]).filter(
-        Boolean,
-      ),
+      city: info.municipio,
+      state: info.estado,
+      colonias: info.asentamientos.map((a) => a.nombre),
     });
   } catch (err) {
     console.warn("[postal-code] lookup failed:", err);
