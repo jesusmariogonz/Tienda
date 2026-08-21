@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCart, cartTotal } from "@/store/cart";
@@ -188,285 +189,347 @@ export default function CheckoutPage() {
   }
 
   return (
-    <main className="flex-1 px-4 py-6 sm:px-6">
-      <div className="mx-auto max-w-md">
-        <h1 className="mb-6 text-xl font-semibold">Checkout</h1>
+    <main className="flex-1 bg-zinc-50 px-4 py-6 sm:px-6">
+      <div className="mx-auto grid max-w-5xl gap-8 lg:grid-cols-[1fr_380px] lg:items-start">
+        <div>
+          <h1 className="mb-6 text-xl font-semibold">Checkout</h1>
 
-        {stockNotes.length > 0 && (
-          <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
-            {stockNotes.map((note, i) => (
-              <p key={i}>{note}</p>
-            ))}
-          </div>
-        )}
+          {stockNotes.length > 0 && (
+            <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
+              {stockNotes.map((note, i) => (
+                <p key={i}>{note}</p>
+              ))}
+            </div>
+          )}
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div>
-            <label className="mb-1 block text-sm font-medium">Correo</label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium">Nombre</label>
-            <input
-              type="text"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium">Teléfono</label>
-            <input
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
-            />
-          </div>
+          <form id="checkout-form" onSubmit={handleSubmit} className="flex flex-col gap-6">
+            <section className="rounded-xl border border-zinc-200 bg-white p-4 sm:p-5">
+              <h2 className="mb-3 text-sm font-semibold text-zinc-900">Contacto</h2>
+              <div className="flex flex-col gap-3">
+                <div>
+                  <label className="mb-1 block text-xs text-zinc-500">Correo</label>
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1 block text-xs text-zinc-500">Nombre</label>
+                    <input
+                      type="text"
+                      required
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs text-zinc-500">Teléfono</label>
+                    <input
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+            </section>
 
-          <div className="flex flex-col gap-3 border-t border-zinc-200 pt-4">
-            <p className="text-sm font-medium">Dirección de envío</p>
+            <section className="rounded-xl border border-zinc-200 bg-white p-4 sm:p-5">
+              <h2 className="mb-3 text-sm font-semibold text-zinc-900">Dirección de envío</h2>
+              <div className="flex flex-col gap-3">
+                <div>
+                  <label className="mb-1 block text-xs text-zinc-500">Código postal</label>
+                  <input
+                    type="text"
+                    required
+                    inputMode="numeric"
+                    maxLength={5}
+                    value={zip}
+                    onChange={(e) => setZip(e.target.value.replace(/\D/g, ""))}
+                    className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+                  />
+                  {zipLookupStatus === "loading" && (
+                    <p className="mt-1 text-xs text-zinc-400">Buscando código postal…</p>
+                  )}
+                  {zipLookupStatus === "error" && (
+                    <p className="mt-1 text-xs text-zinc-400">
+                      No encontramos ese código postal — llena ciudad y estado a mano.
+                    </p>
+                  )}
+                </div>
 
-            <div>
-              <label className="mb-1 block text-xs text-zinc-500">Código postal</label>
-              <input
-                type="text"
-                required
-                inputMode="numeric"
-                maxLength={5}
-                value={zip}
-                onChange={(e) => setZip(e.target.value.replace(/\D/g, ""))}
-                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
-              />
-              {zipLookupStatus === "loading" && (
-                <p className="mt-1 text-xs text-zinc-400">Buscando código postal…</p>
+                {colonias.length > 0 && (
+                  <div>
+                    <label className="mb-1 block text-xs text-zinc-500">Colonia</label>
+                    <select
+                      value={colonia}
+                      onChange={(e) => setColonia(e.target.value)}
+                      className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+                    >
+                      {colonias.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1 block text-xs text-zinc-500">Ciudad</label>
+                    <input
+                      type="text"
+                      required
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                      className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs text-zinc-500">Estado</label>
+                    <input
+                      type="text"
+                      required
+                      value={state}
+                      onChange={(e) => setState(e.target.value)}
+                      className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs text-zinc-500">Calle y número</label>
+                  <input
+                    type="text"
+                    required
+                    value={street}
+                    onChange={(e) => setStreet(e.target.value)}
+                    className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-xs text-zinc-500">
+                    Referencias (opcional)
+                  </label>
+                  <input
+                    type="text"
+                    value={references}
+                    onChange={(e) => setReferences(e.target.value)}
+                    placeholder="Entre calles, color de casa, etc."
+                    className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+                  />
+                </div>
+
+                <label className="flex items-center gap-2 text-sm text-zinc-600">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                  />
+                  Recuérdame — guardar mis datos en este dispositivo
+                </label>
+              </div>
+            </section>
+
+            <section className="rounded-xl border border-zinc-200 bg-white p-4 sm:p-5">
+              <h2 className="mb-3 text-sm font-semibold text-zinc-900">Método de pago</h2>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setProvider("stripe")}
+                  className={`flex flex-1 items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm ${
+                    provider === "stripe" ? "border-black ring-1 ring-black" : "border-zinc-300"
+                  }`}
+                >
+                  <svg viewBox="0 0 32 32" className="h-5 w-5 shrink-0" aria-hidden>
+                    <rect width="32" height="32" rx="6" fill="#635BFF" />
+                    <path
+                      d="M14.6 13.3c0-.8.7-1.1 1.7-1.1 1.6 0 3.5.5 5.1 1.3V9.1c-1.7-.7-3.4-1-5.1-1-4.2 0-7 2.2-7 5.8 0 5.7 7.8 4.8 7.8 7.2 0 .9-.8 1.2-1.9 1.2-1.7 0-4-.7-5.7-1.6v4.5c1.9.8 3.8 1.1 5.7 1.1 4.3 0 7.3-2.1 7.3-5.8 0-6.2-7.9-5.1-7.9-7.2z"
+                      fill="#fff"
+                    />
+                  </svg>
+                  Tarjeta
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setProvider("mercadopago")}
+                  className={`flex flex-1 items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm ${
+                    provider === "mercadopago"
+                      ? "border-black ring-1 ring-black"
+                      : "border-zinc-300"
+                  }`}
+                >
+                  <svg viewBox="0 0 32 32" className="h-5 w-5 shrink-0" aria-hidden>
+                    <circle cx="16" cy="16" r="16" fill="#00B1EA" />
+                    <path
+                      d="M16 8a8 8 0 1 0 8 8 8 8 0 0 0-8-8zm3.4 6.9-4.2 2.7a1 1 0 0 1-1.5-.9v-5.4a1 1 0 0 1 1.5-.9l4.2 2.7a1 1 0 0 1 0 1.8z"
+                      fill="#fff"
+                    />
+                  </svg>
+                  Mercado Pago
+                </button>
+              </div>
+              {DEMO_CHECKOUT_ENABLED && (
+                <button
+                  type="button"
+                  onClick={() => setProvider("demo")}
+                  className={`mt-2 w-full rounded-md border border-dashed px-3 py-2 text-sm ${
+                    provider === "demo"
+                      ? "border-amber-600 bg-amber-50 text-amber-800"
+                      : "border-zinc-300 text-zinc-500"
+                  }`}
+                >
+                  Compra de prueba (sin cobro real)
+                </button>
               )}
-              {zipLookupStatus === "error" && (
-                <p className="mt-1 text-xs text-zinc-400">
-                  No encontramos ese código postal — llena ciudad y estado a mano.
+            </section>
+
+            {error && (
+              <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                {error}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-full bg-purple-700 py-3.5 text-sm font-medium text-white transition-colors hover:bg-purple-800 disabled:opacity-50 lg:hidden"
+            >
+              {loading ? "Procesando…" : `Pagar ${formatPrice(total)}`}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => router.push("/carrito")}
+              className="text-center text-sm text-zinc-500 underline"
+            >
+              Volver al carrito
+            </button>
+          </form>
+        </div>
+
+        <aside className="lg:sticky lg:top-6">
+          <div className="overflow-hidden rounded-xl border border-purple-100 bg-white shadow-sm">
+            <div className="bg-purple-950 px-4 py-3">
+              <h2 className="text-sm font-semibold text-white">
+                Tu pedido · {items.reduce((n, i) => n + i.quantity, 0)} artículo
+                {items.reduce((n, i) => n + i.quantity, 0) === 1 ? "" : "s"}
+              </h2>
+            </div>
+
+            <ul className="flex max-h-72 flex-col gap-3 overflow-y-auto px-4 py-4">
+              {items.map((item) => (
+                <li key={item.variantId} className="flex gap-3">
+                  <div className="relative h-16 w-14 shrink-0 overflow-hidden rounded-md bg-zinc-100">
+                    {item.image && (
+                      <Image
+                        src={item.image}
+                        alt={item.productName}
+                        fill
+                        className="object-cover"
+                        sizes="56px"
+                        unoptimized
+                      />
+                    )}
+                    <span className="absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-purple-700 px-1 text-[10px] font-bold text-white">
+                      {item.quantity}
+                    </span>
+                  </div>
+                  <div className="flex flex-1 flex-col justify-center">
+                    <p className="text-sm font-medium text-zinc-900">{item.productName}</p>
+                    <p className="text-xs text-zinc-500">
+                      {item.color} / {item.size}
+                    </p>
+                  </div>
+                  <p className="self-center text-sm font-medium text-zinc-900">
+                    {formatPrice(item.price * item.quantity)}
+                  </p>
+                </li>
+              ))}
+            </ul>
+
+            <div className="border-t border-zinc-100 px-4 py-4">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={couponCode}
+                  onChange={(e) => {
+                    setCouponCode(e.target.value);
+                    setCouponStatus(null);
+                  }}
+                  placeholder="Código de descuento"
+                  className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm uppercase"
+                />
+                <button
+                  type="button"
+                  onClick={applyCoupon}
+                  disabled={checkingCoupon || !couponCode.trim()}
+                  className="shrink-0 rounded-md border border-zinc-300 px-3 py-2 text-sm disabled:opacity-50"
+                >
+                  {checkingCoupon ? "…" : "Aplicar"}
+                </button>
+              </div>
+              {couponStatus && "error" in couponStatus && (
+                <p className="mt-1 text-xs text-red-600">{couponStatus.error}</p>
+              )}
+              {couponStatus && "discount" in couponStatus && (
+                <p className="mt-1 text-xs text-green-700">
+                  Cupón aplicado: -{formatPrice(couponStatus.discount)}
                 </p>
               )}
             </div>
 
-            {colonias.length > 0 && (
-              <div>
-                <label className="mb-1 block text-xs text-zinc-500">Colonia</label>
-                <select
-                  value={colonia}
-                  onChange={(e) => setColonia(e.target.value)}
-                  className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
-                >
-                  {colonias.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
+            <div className="flex flex-col gap-1.5 border-t border-zinc-100 px-4 py-4">
+              <div className="flex items-center justify-between text-sm text-zinc-500">
+                <span>Subtotal</span>
+                <span>{formatPrice(subtotal)}</span>
               </div>
-            )}
-
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="mb-1 block text-xs text-zinc-500">Ciudad</label>
-                <input
-                  type="text"
-                  required
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
-                />
+              {discount > 0 && (
+                <div className="flex items-center justify-between text-sm text-green-700">
+                  <span>Descuento</span>
+                  <span>-{formatPrice(discount)}</span>
+                </div>
+              )}
+              <div className="flex items-center justify-between text-sm text-zinc-500">
+                <span>Envío</span>
+                <span>
+                  {shipping === null
+                    ? "Calculando…"
+                    : shipping === 0
+                      ? "Gratis"
+                      : formatPrice(shipping)}
+                </span>
               </div>
-              <div>
-                <label className="mb-1 block text-xs text-zinc-500">Estado</label>
-                <input
-                  type="text"
-                  required
-                  value={state}
-                  onChange={(e) => setState(e.target.value)}
-                  className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
-                />
+              <div className="mt-1 flex items-center justify-between border-t border-zinc-100 pt-2 text-base font-semibold text-zinc-900">
+                <span>Total</span>
+                <span>{formatPrice(total)}</span>
               </div>
             </div>
 
-            <div>
-              <label className="mb-1 block text-xs text-zinc-500">Calle y número</label>
-              <input
-                type="text"
-                required
-                value={street}
-                onChange={(e) => setStreet(e.target.value)}
-                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
-              />
-            </div>
+            <button
+              type="submit"
+              form="checkout-form"
+              disabled={loading}
+              className="hidden w-full rounded-full bg-purple-700 py-3.5 text-sm font-medium text-white transition-colors hover:bg-purple-800 disabled:opacity-50 lg:block"
+            >
+              {loading ? "Procesando…" : "Pagar"}
+            </button>
 
-            <div>
-              <label className="mb-1 block text-xs text-zinc-500">
-                Referencias (opcional)
-              </label>
-              <input
-                type="text"
-                value={references}
-                onChange={(e) => setReferences(e.target.value)}
-                placeholder="Entre calles, color de casa, etc."
-                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
-              />
-            </div>
-
-            <label className="flex items-center gap-2 text-sm text-zinc-600">
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-              />
-              Recuérdame — guardar mis datos en este dispositivo para la próxima compra
-            </label>
-          </div>
-
-          <div>
-            <label className="mb-1 block text-sm font-medium">
-              Código de descuento
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={couponCode}
-                onChange={(e) => {
-                  setCouponCode(e.target.value);
-                  setCouponStatus(null);
-                }}
-                placeholder="Opcional"
-                className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm uppercase"
-              />
-              <button
-                type="button"
-                onClick={applyCoupon}
-                disabled={checkingCoupon || !couponCode.trim()}
-                className="shrink-0 rounded-md border border-zinc-300 px-3 py-2 text-sm disabled:opacity-50"
-              >
-                {checkingCoupon ? "…" : "Aplicar"}
-              </button>
-            </div>
-            {couponStatus && "error" in couponStatus && (
-              <p className="mt-1 text-xs text-red-600">{couponStatus.error}</p>
-            )}
-            {couponStatus && "discount" in couponStatus && (
-              <p className="mt-1 text-xs text-green-700">
-                Cupón aplicado: -{formatPrice(couponStatus.discount)}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <p className="mb-2 text-sm font-medium">Método de pago</p>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setProvider("stripe")}
-                className={`flex flex-1 items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm ${
-                  provider === "stripe" ? "border-black ring-1 ring-black" : "border-zinc-300"
-                }`}
-              >
-                <svg viewBox="0 0 32 32" className="h-5 w-5 shrink-0" aria-hidden>
-                  <rect width="32" height="32" rx="6" fill="#635BFF" />
-                  <path
-                    d="M14.6 13.3c0-.8.7-1.1 1.7-1.1 1.6 0 3.5.5 5.1 1.3V9.1c-1.7-.7-3.4-1-5.1-1-4.2 0-7 2.2-7 5.8 0 5.7 7.8 4.8 7.8 7.2 0 .9-.8 1.2-1.9 1.2-1.7 0-4-.7-5.7-1.6v4.5c1.9.8 3.8 1.1 5.7 1.1 4.3 0 7.3-2.1 7.3-5.8 0-6.2-7.9-5.1-7.9-7.2z"
-                    fill="#fff"
-                  />
-                </svg>
-                Tarjeta
-              </button>
-              <button
-                type="button"
-                onClick={() => setProvider("mercadopago")}
-                className={`flex flex-1 items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm ${
-                  provider === "mercadopago"
-                    ? "border-black ring-1 ring-black"
-                    : "border-zinc-300"
-                }`}
-              >
-                <svg viewBox="0 0 32 32" className="h-5 w-5 shrink-0" aria-hidden>
-                  <circle cx="16" cy="16" r="16" fill="#00B1EA" />
-                  <path
-                    d="M16 8a8 8 0 1 0 8 8 8 8 0 0 0-8-8zm3.4 6.9-4.2 2.7a1 1 0 0 1-1.5-.9v-5.4a1 1 0 0 1 1.5-.9l4.2 2.7a1 1 0 0 1 0 1.8z"
-                    fill="#fff"
-                  />
-                </svg>
-                Mercado Pago
-              </button>
-            </div>
-            {DEMO_CHECKOUT_ENABLED && (
-              <button
-                type="button"
-                onClick={() => setProvider("demo")}
-                className={`mt-2 w-full rounded-md border border-dashed px-3 py-2 text-sm ${
-                  provider === "demo"
-                    ? "border-amber-600 bg-amber-50 text-amber-800"
-                    : "border-zinc-300 text-zinc-500"
-                }`}
-              >
-                Compra de prueba (sin cobro real)
-              </button>
-            )}
-          </div>
-
-          <div className="flex flex-col gap-1 border-t border-zinc-200 pt-4">
-            <div className="flex items-center justify-between text-sm text-zinc-500">
-              <span>Subtotal</span>
-              <span>{formatPrice(subtotal)}</span>
-            </div>
-            {discount > 0 && (
-              <div className="flex items-center justify-between text-sm text-green-700">
-                <span>Descuento</span>
-                <span>-{formatPrice(discount)}</span>
-              </div>
-            )}
-            <div className="flex items-center justify-between text-sm text-zinc-500">
-              <span>Envío</span>
-              <span>
-                {shipping === null
-                  ? "Calculando…"
-                  : shipping === 0
-                    ? "Gratis"
-                    : formatPrice(shipping)}
-              </span>
-            </div>
-            <div className="flex items-center justify-between text-base font-medium">
-              <span>Total</span>
-              <span>{formatPrice(total)}</span>
+            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 border-t border-zinc-100 px-4 py-3 text-xs text-zinc-500">
+              <span>🔒 Pago seguro</span>
+              <span>📦 Envío rastreado</span>
+              <span>↩️ Cambios sin complicaciones</span>
             </div>
           </div>
-
-          {error && <p className="text-sm text-red-600">{error}</p>}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-full bg-black py-3.5 text-sm font-medium text-white disabled:opacity-50"
-          >
-            {loading ? "Procesando…" : "Pagar"}
-          </button>
-
-          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-zinc-500">
-            <span>🔒 Pago seguro</span>
-            <span>📦 Envío rastreado</span>
-            <span>↩️ Cambios sin complicaciones</span>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => router.push("/carrito")}
-            className="text-center text-sm text-zinc-500 underline"
-          >
-            Volver al carrito
-          </button>
-        </form>
+        </aside>
       </div>
     </main>
   );
