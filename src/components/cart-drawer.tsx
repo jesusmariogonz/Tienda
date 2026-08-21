@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useCart, cartTotal } from "@/store/cart";
 import { useCartUI } from "@/store/cart-ui";
 import { formatPrice } from "@/lib/money";
+import { useCartStockSync } from "@/hooks/use-cart-stock-sync";
 
 export function CartDrawer() {
   const router = useRouter();
@@ -15,8 +16,20 @@ export function CartDrawer() {
   const setQuantity = useCart((s) => s.setQuantity);
   const removeItem = useCart((s) => s.removeItem);
   const [mounted, setMounted] = useState(false);
+  const stockNotes = useCartStockSync();
+
+  const [freeOverAmount, setFreeOverAmount] = useState<number | null>(null);
+  const total = cartTotal(items);
 
   useEffect(() => setMounted(true), []);
+
+  useEffect(() => {
+    if (items.length === 0) return;
+    fetch(`/api/shipping-rate?subtotal=${total}`)
+      .then((res) => res.json())
+      .then((data) => setFreeOverAmount(data.freeOverAmount ?? null))
+      .catch(() => setFreeOverAmount(null));
+  }, [total, items.length]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -27,8 +40,6 @@ export function CartDrawer() {
   }, [isOpen]);
 
   if (!mounted || !isOpen) return null;
-
-  const total = cartTotal(items);
 
   return (
     <div className="fixed inset-0 z-50">
@@ -50,6 +61,40 @@ export function CartDrawer() {
             ×
           </button>
         </div>
+
+        {stockNotes.length > 0 && (
+          <div className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
+            {stockNotes.map((note, i) => (
+              <p key={i}>{note}</p>
+            ))}
+          </div>
+        )}
+
+        {items.length > 0 && freeOverAmount !== null && (
+          <div className="border-b border-zinc-100 px-4 py-3">
+            {total >= freeOverAmount ? (
+              <p className="text-xs font-medium text-green-700">
+                ¡Envío gratis desbloqueado! 🎉
+              </p>
+            ) : (
+              <>
+                <p className="mb-1.5 text-xs text-zinc-600">
+                  Te faltan{" "}
+                  <span className="font-medium">
+                    {formatPrice(freeOverAmount - total)}
+                  </span>{" "}
+                  para envío gratis
+                </p>
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-100">
+                  <div
+                    className="h-full rounded-full bg-black transition-all"
+                    style={{ width: `${Math.min(100, (total / freeOverAmount) * 100)}%` }}
+                  />
+                </div>
+              </>
+            )}
+          </div>
+        )}
 
         {items.length === 0 ? (
           <div className="flex flex-1 items-center justify-center px-4 text-center text-sm text-zinc-500">

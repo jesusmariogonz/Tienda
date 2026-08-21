@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCart, cartTotal } from "@/store/cart";
 import { formatPrice } from "@/lib/money";
+import { useCartStockSync } from "@/hooks/use-cart-stock-sync";
 
 type Provider = "stripe" | "mercadopago" | "demo";
 
@@ -27,6 +28,7 @@ export default function CheckoutPage() {
   const items = useCart((s) => s.items);
   const subtotal = cartTotal(items);
   const [shipping, setShipping] = useState<number | null>(null);
+  const stockNotes = useCartStockSync();
 
   useEffect(() => {
     if (items.length === 0) return;
@@ -189,6 +191,14 @@ export default function CheckoutPage() {
     <main className="flex-1 px-4 py-6 sm:px-6">
       <div className="mx-auto max-w-md">
         <h1 className="mb-6 text-xl font-semibold">Checkout</h1>
+
+        {stockNotes.length > 0 && (
+          <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
+            {stockNotes.map((note, i) => (
+              <p key={i}>{note}</p>
+            ))}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
@@ -359,23 +369,35 @@ export default function CheckoutPage() {
               <button
                 type="button"
                 onClick={() => setProvider("stripe")}
-                className={`flex-1 rounded-md border px-3 py-2 text-sm ${
-                  provider === "stripe"
-                    ? "border-black bg-black text-white"
-                    : "border-zinc-300"
+                className={`flex flex-1 items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm ${
+                  provider === "stripe" ? "border-black ring-1 ring-black" : "border-zinc-300"
                 }`}
               >
-                Tarjeta (Stripe)
+                <svg viewBox="0 0 32 32" className="h-5 w-5 shrink-0" aria-hidden>
+                  <rect width="32" height="32" rx="6" fill="#635BFF" />
+                  <path
+                    d="M14.6 13.3c0-.8.7-1.1 1.7-1.1 1.6 0 3.5.5 5.1 1.3V9.1c-1.7-.7-3.4-1-5.1-1-4.2 0-7 2.2-7 5.8 0 5.7 7.8 4.8 7.8 7.2 0 .9-.8 1.2-1.9 1.2-1.7 0-4-.7-5.7-1.6v4.5c1.9.8 3.8 1.1 5.7 1.1 4.3 0 7.3-2.1 7.3-5.8 0-6.2-7.9-5.1-7.9-7.2z"
+                    fill="#fff"
+                  />
+                </svg>
+                Tarjeta
               </button>
               <button
                 type="button"
                 onClick={() => setProvider("mercadopago")}
-                className={`flex-1 rounded-md border px-3 py-2 text-sm ${
+                className={`flex flex-1 items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm ${
                   provider === "mercadopago"
-                    ? "border-black bg-black text-white"
+                    ? "border-black ring-1 ring-black"
                     : "border-zinc-300"
                 }`}
               >
+                <svg viewBox="0 0 32 32" className="h-5 w-5 shrink-0" aria-hidden>
+                  <circle cx="16" cy="16" r="16" fill="#00B1EA" />
+                  <path
+                    d="M16 8a8 8 0 1 0 8 8 8 8 0 0 0-8-8zm3.4 6.9-4.2 2.7a1 1 0 0 1-1.5-.9v-5.4a1 1 0 0 1 1.5-.9l4.2 2.7a1 1 0 0 1 0 1.8z"
+                    fill="#fff"
+                  />
+                </svg>
                 Mercado Pago
               </button>
             </div>
@@ -430,6 +452,13 @@ export default function CheckoutPage() {
           >
             {loading ? "Procesando…" : "Pagar"}
           </button>
+
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-zinc-500">
+            <span>🔒 Pago seguro</span>
+            <span>📦 Envío rastreado</span>
+            <span>↩️ Cambios sin complicaciones</span>
+          </div>
+
           <button
             type="button"
             onClick={() => router.push("/carrito")}

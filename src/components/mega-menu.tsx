@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export function MegaMenu({
   categories,
@@ -10,9 +10,32 @@ export function MegaMenu({
 }) {
   const [open, setOpen] = useState(false);
   const [hovered, setHovered] = useState<string | null>("categorias");
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // Touch devices don't fire mouseleave, so tapping the hamburger to open
+  // needs an explicit way to close on an outside tap.
+  useEffect(() => {
+    if (!open) return;
+    function handleClick(e: MouseEvent) {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("click", handleClick);
+    return () => document.removeEventListener("click", handleClick);
+  }, [open]);
 
   return (
-    <div className="relative">
+    // The trigger + panel share one hoverable box (including the gap
+    // between them via `pt-2` instead of a margin) so moving the mouse
+    // down from the hamburger icon into the panel never leaves the
+    // hoverable area and closes it prematurely.
+    <div
+      ref={rootRef}
+      className="relative"
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+    >
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -26,16 +49,9 @@ export function MegaMenu({
       </button>
 
       {open && (
-        <>
-          <button
-            type="button"
-            aria-hidden
-            tabIndex={-1}
-            onClick={() => setOpen(false)}
-            className="fixed inset-0 z-30 cursor-default bg-black/30"
-          />
-          <div className="absolute top-full left-0 z-40 mt-3 flex w-[min(90vw,720px)] overflow-hidden rounded-lg border border-zinc-200 bg-white text-base shadow-xl sm:text-base">
-            <div className="w-48 shrink-0 border-r border-zinc-100 bg-zinc-50 py-2">
+        <div className="absolute top-full left-0 z-40 w-[min(90vw,720px)] pt-2">
+          <div className="flex overflow-hidden rounded-lg border border-zinc-200 bg-white text-base shadow-xl">
+            <div className="w-48 shrink-0 border-r-2 border-zinc-200 bg-zinc-50 py-2">
               <MenuItem
                 label="Categorías"
                 active={hovered === "categorias"}
@@ -81,7 +97,7 @@ export function MegaMenu({
               )}
             </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );

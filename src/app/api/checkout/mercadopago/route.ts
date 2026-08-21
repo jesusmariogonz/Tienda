@@ -21,15 +21,14 @@ const bodySchema = z.object({
     email: z.string().email(),
     name: z.string().optional(),
     phone: z.string().optional(),
-    address: z
-      .object({
-        street: z.string(),
-        city: z.string(),
-        state: z.string(),
-        zip: z.string(),
-        references: z.string().optional(),
-      })
-      .optional(),
+    address: z.object({
+      street: z.string().min(1, "Falta la calle"),
+      city: z.string().min(1, "Falta la ciudad"),
+      state: z.string().min(1, "Falta el estado"),
+      zip: z.string().min(1, "Falta el código postal"),
+      colonia: z.string().optional(),
+      references: z.string().optional(),
+    }),
   }),
   couponCode: z.string().optional(),
 });
