@@ -191,7 +191,7 @@ export default function CheckoutPage() {
   return (
     <main className="flex-1 bg-zinc-50 px-4 py-6 sm:px-6">
       <div className="mx-auto grid max-w-5xl gap-8 lg:grid-cols-[1fr_380px] lg:items-start">
-        <div>
+        <div className="order-2 lg:order-1">
           <h1 className="mb-6 text-xl font-semibold">Checkout</h1>
 
           {stockNotes.length > 0 && (
@@ -416,7 +416,7 @@ export default function CheckoutPage() {
           </form>
         </div>
 
-        <aside className="lg:sticky lg:top-6">
+        <aside className="order-1 lg:order-2 lg:sticky lg:top-6">
           <div className="overflow-hidden rounded-xl border border-purple-100 bg-white shadow-sm">
             <div className="bg-purple-950 px-4 py-3">
               <h2 className="text-sm font-semibold text-white">

@@ -46,6 +46,7 @@ export default async function EditProductPage({
               size: v.size,
               color: v.color,
               colorHex: v.colorHex ?? "#000000",
+              colorHex2: v.colorHex2 ?? undefined,
               quantity: v.inventory?.quantity ?? 0,
               lowStockThreshold: v.inventory?.lowStockThreshold ?? 5,
             })),

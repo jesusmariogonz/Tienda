@@ -91,6 +91,7 @@ model ProductVariant {
   size      String
   color     String
   colorHex  String? // hex swatch shown on the storefront instead of the color name
+  colorHex2 String? // second hex swatch for two-tone variants (e.g. café/azul)
   price     Decimal? @db.Decimal(10, 2) // overrides Product.basePrice when set
   active    Boolean  @default(true)
   createdAt DateTime @default(now())

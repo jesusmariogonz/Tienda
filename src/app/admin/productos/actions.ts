@@ -15,6 +15,7 @@ function parseInput(formData: FormData): ProductInput {
   const sizes = formData.getAll("variantSize") as string[];
   const colors = formData.getAll("variantColor") as string[];
   const colorHexes = formData.getAll("variantColorHex") as string[];
+  const colorHexes2 = formData.getAll("variantColorHex2") as string[];
   const quantities = formData.getAll("variantQuantity") as string[];
   const thresholds = formData.getAll("variantThreshold") as string[];
 
@@ -23,6 +24,7 @@ function parseInput(formData: FormData): ProductInput {
     size,
     color: colors[i],
     colorHex: colorHexes[i] || undefined,
+    colorHex2: colorHexes2[i] || undefined,
     quantity: Number(quantities[i] || 0),
     lowStockThreshold: Number(thresholds[i] || 5),
   }));

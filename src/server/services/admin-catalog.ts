@@ -40,6 +40,7 @@ export type VariantInput = {
   size: string;
   color: string;
   colorHex?: string;
+  colorHex2?: string;
   quantity: number;
   lowStockThreshold: number;
 };
@@ -90,6 +91,7 @@ export async function createProduct(input: ProductInput) {
           size: v.size,
           color: v.color,
           colorHex: v.colorHex,
+          colorHex2: v.colorHex2,
           inventory: {
             create: {
               quantity: v.quantity,
@@ -156,7 +158,13 @@ export async function updateProduct(id: string, input: ProductInput) {
     if (v.id) {
       await prisma.productVariant.update({
         where: { id: v.id },
-        data: { size: v.size, color: v.color, colorHex: v.colorHex, active: true },
+        data: {
+          size: v.size,
+          color: v.color,
+          colorHex: v.colorHex,
+          colorHex2: v.colorHex2 || null,
+          active: true,
+        },
       });
       await prisma.inventory.upsert({
         where: { variantId: v.id },
@@ -175,6 +183,7 @@ export async function updateProduct(id: string, input: ProductInput) {
           size: v.size,
           color: v.color,
           colorHex: v.colorHex,
+          colorHex2: v.colorHex2,
           inventory: {
             create: { quantity: v.quantity, lowStockThreshold: v.lowStockThreshold },
           },

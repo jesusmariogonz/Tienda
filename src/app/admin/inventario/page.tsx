@@ -73,13 +73,20 @@ export default async function AdminInventoryPage() {
                           <td className="px-4 py-2 font-medium">{v.product.name}</td>
                           <td className="px-4 py-2 text-zinc-500">
                             <span className="inline-flex items-center gap-1.5">
-                              {resolveColorHex(v.color, v.colorHex) && (
-                                <span
-                                  className="inline-block h-3 w-3 rounded-full border border-zinc-300"
-                                  style={{
-                                    backgroundColor: resolveColorHex(v.color, v.colorHex)!,
-                                  }}
-                                />
+                              {v.colorHex2 ? (
+                                <span className="grid h-3 w-3 grid-cols-2 overflow-hidden rounded-full border border-zinc-300">
+                                  <span style={{ backgroundColor: v.colorHex ?? "#ccc" }} />
+                                  <span style={{ backgroundColor: v.colorHex2 }} />
+                                </span>
+                              ) : (
+                                resolveColorHex(v.color, v.colorHex) && (
+                                  <span
+                                    className="inline-block h-3 w-3 rounded-full border border-zinc-300"
+                                    style={{
+                                      backgroundColor: resolveColorHex(v.color, v.colorHex)!,
+                                    }}
+                                  />
+                                )
                               )}
                               {v.color} / {v.size}
                             </span>

@@ -9,6 +9,7 @@ export type ProductFormVariant = {
   size: string;
   color: string;
   colorHex: string;
+  colorHex2?: string;
   quantity: number;
   lowStockThreshold: number;
 };
@@ -173,8 +174,9 @@ export function AdminProductForm({
 
         {variants.length > 0 && (
           <div className="mt-3 flex flex-col gap-2">
-            <div className="grid grid-cols-[3rem_5rem_1fr_6rem_6rem_auto] gap-2 px-2 text-[10px] font-medium tracking-wide text-zinc-400 uppercase">
+            <div className="grid grid-cols-[3rem_3rem_5rem_1fr_6rem_6rem_auto] gap-2 px-2 text-[10px] font-medium tracking-wide text-zinc-400 uppercase">
               <span>Color</span>
+              <span title="Para prendas de dos colores, ej. café/azul">Color 2</span>
               <span>Talla</span>
               <span>Nombre color</span>
               <span>Stock inicial</span>
@@ -184,7 +186,7 @@ export function AdminProductForm({
             {variants.map((v, i) => (
               <div
                 key={i}
-                className="grid grid-cols-[3rem_5rem_1fr_6rem_6rem_auto] items-center gap-2 rounded-md border border-zinc-200 p-2"
+                className="grid grid-cols-[3rem_3rem_5rem_1fr_6rem_6rem_auto] items-center gap-2 rounded-md border border-zinc-200 p-2"
               >
                 <input type="hidden" name="variantId" value={v.id ?? ""} />
                 <input
@@ -194,6 +196,25 @@ export function AdminProductForm({
                   className="h-8 w-10 cursor-pointer rounded border border-zinc-300"
                 />
                 <input type="hidden" name="variantColorHex" value={v.colorHex || ""} />
+                <div className="flex items-center gap-1">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(v.colorHex2)}
+                    title="Esta prenda es de dos colores"
+                    onChange={(e) =>
+                      updateVariant(i, { colorHex2: e.target.checked ? "#ffffff" : "" })
+                    }
+                  />
+                  {v.colorHex2 && (
+                    <input
+                      type="color"
+                      value={v.colorHex2}
+                      onChange={(e) => updateVariant(i, { colorHex2: e.target.value })}
+                      className="h-8 w-10 cursor-pointer rounded border border-zinc-300"
+                    />
+                  )}
+                </div>
+                <input type="hidden" name="variantColorHex2" value={v.colorHex2 || ""} />
                 <input
                   name="variantSize"
                   placeholder="Talla"

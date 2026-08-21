@@ -14,6 +14,7 @@ type Variant = {
   size: string;
   color: string;
   colorHex: string | null;
+  colorHex2?: string | null;
   price: number;
   stock: number;
 };
@@ -44,11 +45,14 @@ export function ProductVariantPicker({
     [variants],
   );
   const colors = useMemo(() => {
-    const seen = new Map<string, string | null>();
-    for (const v of variants) if (!seen.has(v.color)) seen.set(v.color, v.colorHex);
-    return Array.from(seen.entries()).map(([name, hex]) => ({
+    const seen = new Map<string, { hex: string | null; hex2: string | null }>();
+    for (const v of variants) {
+      if (!seen.has(v.color)) seen.set(v.color, { hex: v.colorHex, hex2: v.colorHex2 ?? null });
+    }
+    return Array.from(seen.entries()).map(([name, { hex, hex2 }]) => ({
       name,
       hex: resolveColorHex(name, hex),
+      hex2,
     }));
   }, [variants]);
 
@@ -147,7 +151,18 @@ export function ProductVariantPicker({
                 c.name === color ? "opacity-100" : "opacity-60"
               }`}
             >
-              {c.hex ? (
+              {c.hex && c.hex2 ? (
+                <span
+                  className={`flex h-8 w-8 items-center justify-center rounded-full border-2 ${
+                    c.name === color ? "border-black" : "border-zinc-300"
+                  }`}
+                >
+                  <span className="grid h-6 w-6 grid-cols-2 overflow-hidden rounded-full">
+                    <span style={{ backgroundColor: c.hex }} />
+                    <span style={{ backgroundColor: c.hex2 }} />
+                  </span>
+                </span>
+              ) : c.hex ? (
                 <span
                   className={`h-8 w-8 rounded-full border-2 ${
                     c.name === color ? "border-black" : "border-zinc-300"
