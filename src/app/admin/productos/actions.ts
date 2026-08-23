@@ -30,6 +30,7 @@ function parseInput(formData: FormData): ProductInput {
   }));
 
   const imageUrls = (formData.getAll("imageUrl") as string[]).filter(Boolean);
+  const hoverImageUrl = (formData.get("hoverImageUrl") as string) || null;
 
   const wholesaleEnabled = formData.get("wholesaleEnabled") === "on";
   const wholesaleMinQtyRaw = formData.get("wholesaleMinQty") as string;
@@ -41,6 +42,7 @@ function parseInput(formData: FormData): ProductInput {
     basePrice: Number(formData.get("basePrice")),
     categoryName: (formData.get("categoryName") as string) || undefined,
     active: formData.get("active") === "on",
+    hoverImageUrl,
     imageUrls,
     variants,
     wholesaleEnabled,

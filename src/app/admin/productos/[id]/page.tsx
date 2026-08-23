@@ -39,6 +39,7 @@ export default async function EditProductPage({
           categoryName: product.category?.name ?? "",
           active: product.active,
           imageUrls: product.images.map((i) => i.url),
+          hoverImageUrl: product.hoverImageUrl,
           variants: product.variants
             .filter((v) => v.active)
             .map((v) => ({

@@ -1,9 +1,9 @@
-import Image from "next/image";
 import Link from "next/link";
 import { listActiveProducts } from "@/server/services/catalog";
 import { formatPrice } from "@/lib/money";
 import { appName } from "@/lib/config";
 import { CatalogFilters } from "@/components/catalog-filters";
+import { ProductCarousel } from "@/components/product-carousel";
 
 // Render on every request rather than at build time: the catalog changes
 // from the admin panel, and build-time prerendering would also make the
@@ -58,7 +58,6 @@ export default async function Home({
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4">
             {products.map((product) => {
-              const image = product.images[0];
               const price = Number(product.basePrice);
               return (
                 <Link
@@ -66,18 +65,14 @@ export default async function Home({
                   href={`/productos/${product.slug}`}
                   className="group flex flex-col"
                 >
-                  <div className="relative aspect-[4/5] w-full overflow-hidden bg-zinc-100">
-                    {image && (
-                      <Image
-                        src={image.url}
-                        alt={image.alt ?? product.name}
-                        fill
-                        className="object-cover transition-transform duration-300 group-hover:scale-105"
-                        sizes="(max-width: 640px) 50vw, 25vw"
-                        unoptimized
-                      />
-                    )}
-                  </div>
+                  <ProductCarousel
+                    images={product.images}
+                    alt={product.name}
+                    hoverImageUrl={product.hoverImageUrl}
+                    peek
+                    className="aspect-[4/5] w-full bg-zinc-100"
+                    sizes="(max-width: 640px) 50vw, 25vw"
+                  />
                   <div className="mt-2.5 space-y-0.5">
                     {product.category && (
                       <p className="text-[10px] font-semibold tracking-widest text-zinc-400 uppercase">

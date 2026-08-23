@@ -1,7 +1,7 @@
-import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getProductBySlug } from "@/server/services/catalog";
 import { ProductVariantPicker } from "@/components/product-variant-picker";
+import { ProductCarousel } from "@/components/product-carousel";
 
 export default async function ProductPage({
   params,
@@ -28,27 +28,14 @@ export default async function ProductPage({
   return (
     <main className="flex-1 px-4 py-6 sm:px-6">
       <div className="mx-auto grid max-w-5xl gap-8 sm:grid-cols-2">
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-1">
-          {images.length > 0 ? (
-            images.map((img) => (
-              <div
-                key={img.id}
-                className="relative aspect-[4/5] w-full overflow-hidden bg-zinc-100"
-              >
-                <Image
-                  src={img.url}
-                  alt={img.alt ?? product.name}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 640px) 100vw, 50vw"
-                  unoptimized
-                />
-              </div>
-            ))
-          ) : (
-            <div className="aspect-[4/5] w-full bg-zinc-100" />
-          )}
-        </div>
+        <ProductCarousel
+          images={images}
+          alt={product.name}
+          arrows
+          priority
+          className="aspect-[4/5] w-full rounded-lg bg-zinc-100"
+          sizes="(max-width: 640px) 100vw, 50vw"
+        />
 
         <div className="flex flex-col gap-4">
           <div>

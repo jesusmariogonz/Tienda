@@ -34,7 +34,9 @@ export async function listActiveProducts(filters: CatalogFilters = {}) {
   const products = await prisma.product.findMany({
     where,
     include: {
-      images: { orderBy: { position: "asc" }, take: 1 },
+      // Cards show a small swipeable preview, so we need every image, not
+      // just the first — capped at 5 to keep the catalog query light.
+      images: { orderBy: { position: "asc" }, take: 5 },
       category: true,
       variants: {
         where: { active: true },

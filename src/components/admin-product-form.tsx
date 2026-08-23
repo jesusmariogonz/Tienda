@@ -21,6 +21,7 @@ export type ProductFormValues = {
   categoryName: string;
   active: boolean;
   imageUrls: string[];
+  hoverImageUrl?: string | null;
   variants: ProductFormVariant[];
   wholesaleEnabled?: boolean;
   wholesaleMinQty?: number | null;
@@ -116,6 +117,20 @@ export function AdminProductForm({
       </div>
 
       <AdminImageUploader initialUrls={initialValues?.imageUrls} />
+
+      <div>
+        <AdminImageUploader
+          initialUrls={initialValues?.hoverImageUrl ? [initialValues.hoverImageUrl] : []}
+          fieldName="hoverImageUrl"
+          multiple={false}
+          label="Foto de hover (PC) — opcional"
+        />
+        <p className="mt-1 text-xs text-zinc-500">
+          Se muestra solo en computadora al pasar el mouse sobre la tarjeta del
+          producto en el catálogo. No aparece en el carrusel normal del
+          producto.
+        </p>
+      </div>
 
       <label className="flex items-center gap-2 text-sm">
         <input
