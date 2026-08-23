@@ -27,17 +27,17 @@ export default async function ProductPage({
 
   return (
     <main className="flex-1 px-4 py-6 sm:px-6">
-      <div className="mx-auto grid max-w-5xl gap-8 sm:grid-cols-2">
+      <div className="mx-auto grid max-w-6xl gap-10 sm:grid-cols-2 lg:grid-cols-[3fr_2fr]">
         <ProductCarousel
           images={images}
           alt={product.name}
           arrows
           priority
-          className="aspect-[4/5] w-full rounded-lg bg-zinc-100"
-          sizes="(max-width: 640px) 100vw, 50vw"
+          className="aspect-[2/3] w-full rounded-lg bg-zinc-100"
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 60vw"
         />
 
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 lg:pt-4">
           <div>
             {product.category && (
               <p className="text-xs uppercase tracking-wide text-zinc-500">

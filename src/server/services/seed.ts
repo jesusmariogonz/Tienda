@@ -66,7 +66,7 @@ const products: ProductSeed[] = [
     basePrice: 349,
     category: "Accesorios",
     colors: ["Negro", "Blanco"],
-    sizes: ["Única"],
+    sizes: ["Unitalla"],
   },
   {
     name: "Chaleco Deportivo",
