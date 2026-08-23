@@ -6,6 +6,7 @@ import { searchVariantsAction, registerPosSaleAction } from "./actions";
 
 type SearchResult = {
   id: string;
+  sku: string;
   productName: string;
   size: string;
   color: string;
@@ -60,6 +61,23 @@ export function PosClient() {
       const res = await searchVariantsAction(value);
       setResults(res);
     });
+  }
+
+  // A USB/handheld barcode scanner types the code and sends Enter — if it
+  // matches a SKU exactly, add it straight to the ticket instead of making
+  // the cashier click "Agregar" after scanning.
+  async function handleSearchKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key !== "Enter" || !query.trim()) return;
+    e.preventDefault();
+    const res = await searchVariantsAction(query);
+    const exact = res.find((r) => r.sku.toLowerCase() === query.trim().toLowerCase());
+    if (exact) {
+      if (exact.stock > 0) addToTicket(exact);
+      setResults([]);
+      setQuery("");
+    } else {
+      setResults(res);
+    }
   }
 
   function addToTicket(item: SearchResult) {
@@ -141,9 +159,10 @@ export function PosClient() {
       <div className="flex flex-col gap-3">
         <input
           type="text"
-          placeholder="Buscar producto por nombre o SKU…"
+          placeholder="Buscar producto por nombre o SKU… (o escanea un código)"
           value={query}
           onChange={(e) => handleSearch(e.target.value)}
+          onKeyDown={handleSearchKeyDown}
           className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
         />
         {isPending && <p className="text-xs text-zinc-400">Buscando…</p>}

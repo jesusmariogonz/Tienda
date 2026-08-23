@@ -13,6 +13,7 @@ export async function searchVariantsAction(query: string) {
   const variants = await searchVariants(query);
   return variants.map((v) => ({
     id: v.id,
+    sku: v.sku,
     productName: v.product.name,
     size: v.size,
     color: v.color,

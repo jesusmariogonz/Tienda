@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getProductForAdmin } from "@/server/services/admin-catalog";
 import { AdminProductForm } from "@/components/admin-product-form";
+import { ProductBarcodeLabels } from "@/components/product-barcode-labels";
 import { updateProductAction, deleteProductAction } from "../actions";
 
 export default async function EditProductPage({
@@ -57,6 +58,13 @@ export default async function EditProductPage({
             ? Number(product.wholesaleDiscountPercent)
             : null,
         }}
+      />
+
+      <ProductBarcodeLabels
+        productName={product.name}
+        variants={product.variants
+          .filter((v) => v.active)
+          .map((v) => ({ id: v.id, sku: v.sku, color: v.color, size: v.size }))}
       />
     </div>
   );
