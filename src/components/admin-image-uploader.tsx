@@ -68,7 +68,6 @@ export function AdminImageUploader({
                   fill
                   className="object-cover"
                   sizes="150px"
-                  unoptimized
                 />
               </div>
               <button

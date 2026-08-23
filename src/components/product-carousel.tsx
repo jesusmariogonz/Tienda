@@ -100,7 +100,6 @@ export function ProductCarousel({
           fill
           className="object-cover"
           sizes={sizes}
-          unoptimized
         />
       ) : (
         <div
@@ -118,7 +117,6 @@ export function ProductCarousel({
                 fill
                 className="object-cover"
                 sizes={sizes}
-                unoptimized
                 priority={priority && i === 0}
               />
             </div>

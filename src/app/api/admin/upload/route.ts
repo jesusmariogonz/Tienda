@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { put } from "@vercel/blob";
+import sharp from "sharp";
 import { auth } from "@/auth";
+
+// Caps the longer side so nobody accidentally uploads a 12MP phone photo
+// straight to production — this is on top of (not instead of) Next.js's
+// own on-the-fly image optimization for serving.
+const MAX_DIMENSION = 1600;
+const WEBP_QUALITY = 82;
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -21,9 +28,18 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const blob = await put(`productos/${Date.now()}-${file.name}`, file, {
+    const originalBuffer = Buffer.from(await file.arrayBuffer());
+    const optimized = await sharp(originalBuffer)
+      .rotate() // respects EXIF orientation before resizing
+      .resize({ width: MAX_DIMENSION, height: MAX_DIMENSION, fit: "inside", withoutEnlargement: true })
+      .webp({ quality: WEBP_QUALITY })
+      .toBuffer();
+
+    const baseName = file.name.replace(/\.[^.]+$/, "");
+    const blob = await put(`productos/${Date.now()}-${baseName}.webp`, optimized, {
       access: "public",
       addRandomSuffix: true,
+      contentType: "image/webp",
     });
     return NextResponse.json({ url: blob.url });
   } catch (err) {

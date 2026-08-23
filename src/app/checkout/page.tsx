@@ -436,7 +436,6 @@ export default function CheckoutPage() {
                         fill
                         className="object-cover"
                         sizes="56px"
-                        unoptimized
                       />
                     )}
                     <span className="absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-purple-700 px-1 text-[10px] font-bold text-white">

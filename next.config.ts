@@ -8,6 +8,8 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "placehold.co" },
       { protocol: "https", hostname: "*.public.blob.vercel-storage.com" },
     ],
+    formats: ["image/avif", "image/webp"],
+    minimumCacheTTL: 31536000, // 1 year — product photos rarely change in place
   },
 };
 
