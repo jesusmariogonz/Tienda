@@ -100,6 +100,7 @@ export function ProductCarousel({
           fill
           className="object-cover"
           sizes={sizes}
+          quality={90}
         />
       ) : (
         <div
@@ -117,6 +118,7 @@ export function ProductCarousel({
                 fill
                 className="object-cover"
                 sizes={sizes}
+                quality={90}
                 priority={priority && i === 0}
               />
             </div>

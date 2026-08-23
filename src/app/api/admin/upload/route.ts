@@ -7,7 +7,10 @@ import { auth } from "@/auth";
 // straight to production — this is on top of (not instead of) Next.js's
 // own on-the-fly image optimization for serving.
 const MAX_DIMENSION = 1600;
-const WEBP_QUALITY = 82;
+// Next.js's own image optimizer re-encodes this again on serve (see
+// `quality={90}` on the storefront's <Image> components) — keeping this
+// close to that avoids stacking two lossy passes into visibly soft photos.
+const WEBP_QUALITY = 90;
 
 export async function POST(req: NextRequest) {
   const session = await auth();

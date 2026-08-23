@@ -59,6 +59,7 @@ export default function CartPage() {
                     fill
                     className="object-cover"
                     sizes="80px"
+                    quality={90}
                   />
                 )}
               </div>

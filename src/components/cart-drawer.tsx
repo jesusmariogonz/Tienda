@@ -115,6 +115,7 @@ export function CartDrawer() {
                       fill
                       className="object-cover"
                       sizes="64px"
+                      quality={90}
                     />
                   )}
                 </div>
