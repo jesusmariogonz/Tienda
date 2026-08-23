@@ -3,6 +3,8 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
+import { DEFAULT_ITEM_WEIGHT_KG } from "@/lib/config";
+
 export type CartItem = {
   variantId: string;
   productSlug: string;
@@ -13,6 +15,7 @@ export type CartItem = {
   price: number;
   quantity: number;
   maxQuantity: number;
+  weightKg?: number | null;
 };
 
 type CartState = {
@@ -64,4 +67,11 @@ export const useCart = create<CartState>()(
 
 export function cartTotal(items: CartItem[]) {
   return items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+}
+
+export function cartWeightKg(items: CartItem[]) {
+  return items.reduce(
+    (sum, i) => sum + (i.weightKg ?? DEFAULT_ITEM_WEIGHT_KG) * i.quantity,
+    0,
+  );
 }

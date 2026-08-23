@@ -11,6 +11,7 @@ import {
 } from "@/server/services/shipments";
 import { getOriginAddress, saveShippingSettings } from "@/server/services/shipping";
 import { bookSkydropxShipment, getSkydropxBalance, quoteSkydropxShipment } from "@/lib/skydropx";
+import { DEFAULT_ITEM_WEIGHT_KG } from "@/lib/config";
 
 function truncate(message: string) {
   // A raw provider error body can be huge and blow past the URL length
@@ -75,8 +76,13 @@ export async function quoteSkydropxAction(formData: FormData) {
     errorRedirect(orderId, "Falta configurar la dirección de origen en /admin/envios/tarifas");
   }
 
+  const packageWeightKg = order.items.reduce(
+    (sum, item) => sum + Number(item.variant.product.weightKg ?? DEFAULT_ITEM_WEIGHT_KG) * item.quantity,
+    0,
+  );
+
   try {
-    const quote = await quoteSkydropxShipment({ origin, toAddress: address });
+    const quote = await quoteSkydropxShipment({ origin, toAddress: address, packageWeightKg });
     if (!quote) errorRedirect(orderId, "Skydropx no está configurado (faltan las credenciales)");
     if (quote.rates.length === 0) {
       errorRedirect(

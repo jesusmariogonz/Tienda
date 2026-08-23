@@ -58,6 +58,7 @@ export type ShippingQuoteOptions =
 export async function quoteShippingOptions(
   address: ShippingAddress,
   subtotal: number,
+  packageWeightKg?: number,
 ): Promise<ShippingQuoteOptions> {
   const flatCost = await computeShippingCost(subtotal);
 
@@ -69,7 +70,7 @@ export async function quoteShippingOptions(
   if (!origin) return { source: "flat", cost: flatCost };
 
   try {
-    const quote = await quoteSkydropxShipment({ origin, toAddress: address });
+    const quote = await quoteSkydropxShipment({ origin, toAddress: address, packageWeightKg });
     if (!quote || quote.rates.length === 0) return { source: "flat", cost: flatCost };
     return { source: "skydropx", quotationId: quote.quotationId, rates: quote.rates };
   } catch (err) {

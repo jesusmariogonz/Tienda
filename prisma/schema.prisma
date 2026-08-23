@@ -52,6 +52,9 @@ model Product {
   slug        String   @unique
   description String?
   basePrice   Decimal  @db.Decimal(10, 2)
+  // Used to quote shipping accurately (a shirt vs. 10 shirts isn't the same
+  // parcel) — null falls back to a conservative default weight per unit.
+  weightKg    Decimal? @db.Decimal(6, 3)
   active      Boolean  @default(true)
   categoryId  String?
   category    Category? @relation(fields: [categoryId], references: [id])

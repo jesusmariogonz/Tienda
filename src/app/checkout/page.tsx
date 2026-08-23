@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useCart, cartTotal } from "@/store/cart";
+import { useCart, cartTotal, cartWeightKg } from "@/store/cart";
 import { formatPrice } from "@/lib/money";
 import { useCartStockSync } from "@/hooks/use-cart-stock-sync";
 
@@ -40,6 +40,7 @@ export default function CheckoutPage() {
   const router = useRouter();
   const items = useCart((s) => s.items);
   const subtotal = cartTotal(items);
+  const weightKg = cartWeightKg(items);
   const stockNotes = useCartStockSync();
 
   const [email, setEmail] = useState("");
@@ -84,6 +85,7 @@ export default function CheckoutPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           subtotal,
+          weightKg,
           address: { street, city, state, zip, references },
         }),
       })
@@ -108,7 +110,7 @@ export default function CheckoutPage() {
         });
     }, 700);
     return () => clearTimeout(timeout);
-  }, [subtotal, items.length, street, city, state, zip, references]);
+  }, [subtotal, weightKg, items.length, street, city, state, zip, references]);
 
   function selectRate(rateId: string) {
     setSelectedRateId(rateId);
@@ -595,15 +597,20 @@ export default function CheckoutPage() {
                   <span>-{formatPrice(discount)}</span>
                 </div>
               )}
-              <div className="flex items-center justify-between text-sm text-zinc-500">
-                <span>Envío</span>
-                <span>
-                  {shipping === null
-                    ? "Calculando…"
-                    : shipping === 0
-                      ? "Gratis"
-                      : formatPrice(shipping)}
-                </span>
+              <div>
+                <div className="flex items-center justify-between text-sm text-zinc-500">
+                  <span>Envío</span>
+                  <span>
+                    {shipping === null
+                      ? "Calculando…"
+                      : shipping === 0
+                        ? "Gratis"
+                        : formatPrice(shipping)}
+                  </span>
+                </div>
+                <p className="mt-0.5 text-[11px] text-zinc-400">
+                  El envío se calcula en base a distancia, peso y medidas.
+                </p>
               </div>
               <div className="mt-1 flex items-center justify-between border-t border-zinc-100 pt-2 text-base font-semibold text-zinc-900">
                 <span>Total</span>

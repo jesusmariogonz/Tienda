@@ -4,6 +4,7 @@ import { quoteShippingOptions, getShippingSettings } from "@/server/services/shi
 
 const bodySchema = z.object({
   subtotal: z.number().nonnegative(),
+  weightKg: z.number().positive().optional(),
   address: z.object({
     street: z.string().optional(),
     city: z.string().optional(),
@@ -19,7 +20,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
   }
 
-  const options = await quoteShippingOptions(parsed.data.address, parsed.data.subtotal);
+  const options = await quoteShippingOptions(
+    parsed.data.address,
+    parsed.data.subtotal,
+    parsed.data.weightKg,
+  );
   return NextResponse.json(options);
 }
 

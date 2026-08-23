@@ -49,6 +49,7 @@ export type ProductInput = {
   name: string;
   description?: string;
   basePrice: number;
+  weightKg?: number | null;
   categoryName?: string;
   active: boolean;
   imageUrls: string[];
@@ -78,6 +79,7 @@ export async function createProduct(input: ProductInput) {
       slug,
       description: input.description,
       basePrice: input.basePrice,
+      weightKg: input.weightKg ?? null,
       active: input.active,
       categoryId,
       wholesaleEnabled: input.wholesaleEnabled ?? false,
@@ -125,6 +127,7 @@ export async function updateProduct(id: string, input: ProductInput) {
       name: input.name,
       description: input.description,
       basePrice: input.basePrice,
+      weightKg: input.weightKg ?? null,
       active: input.active,
       categoryId,
       wholesaleEnabled: input.wholesaleEnabled ?? false,

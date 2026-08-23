@@ -37,6 +37,7 @@ export default async function EditProductPage({
           name: product.name,
           description: product.description ?? "",
           basePrice: Number(product.basePrice),
+          weightKg: product.weightKg ? Number(product.weightKg) : null,
           categoryName: product.category?.name ?? "",
           active: product.active,
           imageUrls: product.images.map((i) => i.url),

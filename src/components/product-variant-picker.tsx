@@ -26,6 +26,7 @@ export function ProductVariantPicker({
   productName,
   image,
   basePrice,
+  weightKg,
   variants,
   wholesale,
 }: {
@@ -33,6 +34,7 @@ export function ProductVariantPicker({
   productName: string;
   image?: string;
   basePrice: number;
+  weightKg?: number | null;
   variants: Variant[];
   wholesale?: Wholesale | null;
 }) {
@@ -94,6 +96,7 @@ export function ProductVariantPicker({
       price: unitPrice,
       quantity,
       maxQuantity: selected.stock,
+      weightKg,
     });
     setAdded(true);
     setQuantity(1);
@@ -113,6 +116,7 @@ export function ProductVariantPicker({
       price: selected.price,
       quantity,
       maxQuantity: selected.stock,
+      weightKg,
     });
     router.push("/checkout");
   }

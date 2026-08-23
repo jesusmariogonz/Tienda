@@ -36,10 +36,13 @@ function parseInput(formData: FormData): ProductInput {
   const wholesaleMinQtyRaw = formData.get("wholesaleMinQty") as string;
   const wholesaleDiscountRaw = formData.get("wholesaleDiscountPercent") as string;
 
+  const weightKgRaw = formData.get("weightKg") as string;
+
   return {
     name: formData.get("name") as string,
     description: (formData.get("description") as string) || undefined,
     basePrice: Number(formData.get("basePrice")),
+    weightKg: weightKgRaw ? Number(weightKgRaw) : null,
     categoryName: (formData.get("categoryName") as string) || undefined,
     active: formData.get("active") === "on",
     hoverImageUrl,

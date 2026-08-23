@@ -15,6 +15,7 @@ export default async function ProductPage({
 
   const images = product.images;
   const basePrice = Number(product.basePrice);
+  const weightKg = product.weightKg ? Number(product.weightKg) : null;
   const variants = product.variants.map((v) => ({
     id: v.id,
     size: v.size,
@@ -60,6 +61,7 @@ export default async function ProductPage({
             productName={product.name}
             image={images[0]?.url}
             basePrice={basePrice}
+            weightKg={weightKg}
             variants={variants}
             wholesale={
               product.wholesaleEnabled && product.wholesaleMinQty && product.wholesaleDiscountPercent

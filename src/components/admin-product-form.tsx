@@ -18,6 +18,7 @@ export type ProductFormValues = {
   name: string;
   description: string;
   basePrice: number;
+  weightKg?: number | null;
   categoryName: string;
   active: boolean;
   imageUrls: string[];
@@ -114,6 +115,24 @@ export function AdminProductForm({
             className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
           />
         </div>
+      </div>
+
+      <div>
+        <label className="mb-1 block text-sm font-medium">Peso (kg)</label>
+        <input
+          name="weightKg"
+          type="number"
+          step="0.001"
+          min="0"
+          placeholder="0.300"
+          defaultValue={initialValues?.weightKg ?? ""}
+          className="w-full max-w-40 rounded-md border border-zinc-300 px-3 py-2 text-sm"
+        />
+        <p className="mt-1 text-xs text-zinc-500">
+          Peso de una sola pieza (empaque incluido) — se usa para cotizar el
+          envío según cuántas unidades se compren. Si se deja vacío se usa un
+          peso genérico por defecto.
+        </p>
       </div>
 
       <AdminImageUploader initialUrls={initialValues?.imageUrls} />
