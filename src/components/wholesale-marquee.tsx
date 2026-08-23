@@ -14,8 +14,8 @@ export function WholesaleMarquee({ products }: { products: WholesaleProduct[] })
   const loop = [...messages, ...messages];
 
   return (
-    <div className="overflow-hidden border-b border-purple-900 bg-purple-950 py-2">
-      <div className="animate-marquee flex w-max gap-12 whitespace-nowrap text-xs font-medium tracking-wide text-purple-100 uppercase">
+    <div className="overflow-hidden border-b border-black bg-white py-2">
+      <div className="animate-marquee flex w-max gap-12 whitespace-nowrap text-xs font-medium tracking-wide text-black uppercase">
         {loop.map((msg, i) => (
           <span key={i}>✦ {msg}</span>
         ))}
