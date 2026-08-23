@@ -168,6 +168,24 @@ type RawRate = {
   office_delivery: boolean;
 };
 
+function mapRates(rawRates: RawRate[]): SkydropxRate[] {
+  return rawRates
+    .filter((r) => READY_RATE_STATUSES.has(r.status))
+    .map((r) => ({
+      id: r.id,
+      providerName: r.provider_name,
+      providerDisplayName: r.provider_display_name,
+      serviceName: r.provider_service_name,
+      total: Number(r.total),
+      currency: r.currency_code,
+      days: r.days,
+      pickup: r.pickup,
+      pickupAutomatic: r.pickup_automatic,
+      officeDelivery: r.office_delivery,
+    }))
+    .sort((a, b) => a.total - b.total);
+}
+
 /** Step 1+2: creates a quotation and polls it until Skydropx finishes
  * pricing every carrier, returning the usable rates for the admin to pick
  * from. Returns null if Skydropx isn't configured. */
@@ -217,23 +235,21 @@ export async function quoteSkydropxShipment(params: {
     quotation = await skydropxFetch(`/quotations/${created.id}`, { method: "GET" });
   }
 
-  const rates: SkydropxRate[] = (quotation.rates ?? [])
-    .filter((r: RawRate) => READY_RATE_STATUSES.has(r.status))
-    .map((r: RawRate) => ({
-      id: r.id,
-      providerName: r.provider_name,
-      providerDisplayName: r.provider_display_name,
-      serviceName: r.provider_service_name,
-      total: Number(r.total),
-      currency: r.currency_code,
-      days: r.days,
-      pickup: r.pickup,
-      pickupAutomatic: r.pickup_automatic,
-      officeDelivery: r.office_delivery,
-    }))
-    .sort((a: SkydropxRate, b: SkydropxRate) => a.total - b.total);
+  return { quotationId: quotation.id, rates: mapRates(quotation.rates ?? []) };
+}
 
-  return { quotationId: quotation.id, rates };
+/** Re-fetches a previously created quotation, so a rate the customer picked
+ * at checkout can be verified server-side (authoritative price) before it's
+ * charged — never trust a cost the client sends for it. Returns null if
+ * Skydropx isn't configured or the quotation can't be found. */
+export async function getSkydropxQuotation(quotationId: string): Promise<SkydropxQuote | null> {
+  if (!isConfigured()) return null;
+  try {
+    const quotation = await skydropxFetch(`/quotations/${quotationId}`, { method: "GET" });
+    return { quotationId: quotation.id, rates: mapRates(quotation.rates ?? []) };
+  } catch {
+    return null;
+  }
 }
 
 /** Step 3: books a previously quoted rate into an actual shipment/label. */

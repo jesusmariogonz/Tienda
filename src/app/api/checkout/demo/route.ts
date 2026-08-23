@@ -31,6 +31,12 @@ const bodySchema = z.object({
     }),
   }),
   couponCode: z.string().optional(),
+  shipping: z
+    .object({
+      quotationId: z.string(),
+      rateId: z.string(),
+    })
+    .optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -42,10 +48,10 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
   }
-  const { items, customer, couponCode } = parsed.data;
+  const { items, customer, couponCode, shipping } = parsed.data;
 
   try {
-    const order = await createPendingOrder(items, customer, couponCode);
+    const order = await createPendingOrder(items, customer, couponCode, shipping);
     await confirmOrderPaid(order.id);
 
     return NextResponse.json({ url: `${appUrl}/checkout/exito?order=${order.id}` });

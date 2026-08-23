@@ -12,6 +12,18 @@ type Provider = "stripe" | "mercadopago" | "demo";
 const DEMO_CHECKOUT_ENABLED = process.env.NEXT_PUBLIC_DEMO_CHECKOUT === "true";
 const REMEMBER_KEY = "tienda-checkout-remember";
 
+type ShippingRate = {
+  id: string;
+  providerDisplayName: string;
+  serviceName: string;
+  total: number;
+  days: number;
+};
+
+type ShippingQuoteResponse =
+  | { source: "flat"; cost: number }
+  | { source: "skydropx"; quotationId: string; rates: ShippingRate[] };
+
 type RememberedData = {
   email: string;
   name: string;
@@ -28,16 +40,7 @@ export default function CheckoutPage() {
   const router = useRouter();
   const items = useCart((s) => s.items);
   const subtotal = cartTotal(items);
-  const [shipping, setShipping] = useState<number | null>(null);
   const stockNotes = useCartStockSync();
-
-  useEffect(() => {
-    if (items.length === 0) return;
-    fetch(`/api/shipping-rate?subtotal=${subtotal}`)
-      .then((res) => res.json())
-      .then((data) => setShipping(data.cost))
-      .catch(() => setShipping(null));
-  }, [subtotal, items.length]);
 
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
@@ -54,6 +57,64 @@ export default function CheckoutPage() {
   const [provider, setProvider] = useState<Provider>("stripe");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Shipping: a flat estimate as soon as the cart is known, upgraded to real
+  // Skydropx rates for the customer's address once street+zip are filled —
+  // the customer then picks the carrier they're actually charged for.
+  const [shipping, setShipping] = useState<number | null>(null);
+  const [shippingRates, setShippingRates] = useState<ShippingRate[] | null>(null);
+  const [shippingQuotationId, setShippingQuotationId] = useState<string | null>(null);
+  const [selectedRateId, setSelectedRateId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (items.length === 0) return;
+    fetch(`/api/shipping-rate?subtotal=${subtotal}`)
+      .then((res) => res.json())
+      .then((data) => setShipping(data.cost))
+      .catch(() => setShipping(null));
+  }, [subtotal, items.length]);
+
+  useEffect(() => {
+    if (items.length === 0 || zip.length !== 5 || !street.trim() || !city.trim() || !state.trim()) {
+      return;
+    }
+    const timeout = setTimeout(() => {
+      fetch("/api/shipping-rate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          subtotal,
+          address: { street, city, state, zip, references },
+        }),
+      })
+        .then((res) => res.json())
+        .then((data: ShippingQuoteResponse) => {
+          if (data.source === "skydropx" && data.rates.length > 0) {
+            setShippingRates(data.rates);
+            setShippingQuotationId(data.quotationId);
+            setSelectedRateId(data.rates[0].id);
+            setShipping(data.rates[0].total);
+          } else {
+            setShippingRates(null);
+            setShippingQuotationId(null);
+            setSelectedRateId(null);
+            if (data.source === "flat") setShipping(data.cost);
+          }
+        })
+        .catch(() => {
+          setShippingRates(null);
+          setShippingQuotationId(null);
+          setSelectedRateId(null);
+        });
+    }, 700);
+    return () => clearTimeout(timeout);
+  }, [subtotal, items.length, street, city, state, zip, references]);
+
+  function selectRate(rateId: string) {
+    setSelectedRateId(rateId);
+    const rate = shippingRates?.find((r) => r.id === rateId);
+    if (rate) setShipping(rate.total);
+  }
 
   useEffect(() => {
     try {
@@ -175,6 +236,10 @@ export default function CheckoutPage() {
           },
           couponCode:
             couponStatus && "discount" in couponStatus ? couponStatus.code : undefined,
+          shipping:
+            shippingQuotationId && selectedRateId
+              ? { quotationId: shippingQuotationId, rateId: selectedRateId }
+              : undefined,
         }),
       });
       const data = await res.json().catch(() => null);
@@ -338,6 +403,38 @@ export default function CheckoutPage() {
                 </label>
               </div>
             </section>
+
+            {shippingRates && shippingRates.length > 0 && (
+              <section className="rounded-xl border border-zinc-200 bg-white p-4 sm:p-5">
+                <h2 className="mb-3 text-sm font-semibold text-zinc-900">Paquetería</h2>
+                <div className="flex flex-col gap-2">
+                  {shippingRates.map((rate) => (
+                    <label
+                      key={rate.id}
+                      className={`flex cursor-pointer items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm ${
+                        selectedRateId === rate.id ? "border-black ring-1 ring-black" : "border-zinc-300"
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="shippingRate"
+                          checked={selectedRateId === rate.id}
+                          onChange={() => selectRate(rate.id)}
+                        />
+                        <span>
+                          <span className="font-medium">{rate.providerDisplayName}</span>{" "}
+                          <span className="text-zinc-500">
+                            · {rate.serviceName} · {rate.days} {rate.days === 1 ? "día" : "días"}
+                          </span>
+                        </span>
+                      </span>
+                      <span className="font-medium">{formatPrice(rate.total)}</span>
+                    </label>
+                  ))}
+                </div>
+              </section>
+            )}
 
             <section className="rounded-xl border border-zinc-200 bg-white p-4 sm:p-5">
               <h2 className="mb-3 text-sm font-semibold text-zinc-900">Método de pago</h2>

@@ -31,6 +31,12 @@ const bodySchema = z.object({
     }),
   }),
   couponCode: z.string().optional(),
+  shipping: z
+    .object({
+      quotationId: z.string(),
+      rateId: z.string(),
+    })
+    .optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -38,11 +44,11 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
   }
-  const { items, customer, couponCode } = parsed.data;
+  const { items, customer, couponCode, shipping } = parsed.data;
 
   let order;
   try {
-    order = await createPendingOrder(items, customer, couponCode);
+    order = await createPendingOrder(items, customer, couponCode, shipping);
   } catch (err) {
     const message = err instanceof Error ? err.message : "No se pudo crear la orden";
     return NextResponse.json({ error: message }, { status: 400 });

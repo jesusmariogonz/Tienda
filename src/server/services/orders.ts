@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma";
 import { checkLowStockAndAlert, sendOrderConfirmationEmail } from "./notifications";
-import { computeShippingCost } from "./shipping";
+import { resolveShippingCost, type ShippingSelection } from "./shipping";
+import { saveSkydropxQuote } from "./shipments";
 
 export type CheckoutItemInput = {
   variantId: string;
@@ -48,6 +49,7 @@ export async function createPendingOrder(
   items: CheckoutItemInput[],
   customer: CheckoutCustomer,
   couponCode?: string,
+  shippingSelection?: ShippingSelection,
 ) {
   if (items.length === 0) throw new Error("El carrito está vacío");
 
@@ -97,7 +99,7 @@ export async function createPendingOrder(
     couponId = coupon.id;
   }
 
-  const shippingCost = await computeShippingCost(subtotal);
+  const shipping = await resolveShippingCost(shippingSelection, subtotal);
 
   const order = await prisma.order.create({
     data: {
@@ -109,13 +111,19 @@ export async function createPendingOrder(
       shippingAddress: customer.address,
       subtotal,
       discountAmount,
-      shippingCost,
-      total: Math.max(0, subtotal - discountAmount) + shippingCost,
+      shippingCost: shipping.cost,
+      total: Math.max(0, subtotal - discountAmount) + shipping.cost,
       couponId,
       items: { create: orderItemsData },
     },
     include: { items: { include: { variant: { include: { product: true } } } } },
   });
+
+  // Save the verified quotation against the order so the admin can book the
+  // exact rate the customer already paid for, instead of re-quoting.
+  if (shipping.quotationId && shipping.rates) {
+    await saveSkydropxQuote(order.id, shipping.quotationId, shipping.rates);
+  }
 
   return order;
 }
