@@ -57,7 +57,7 @@ export default async function Home({
           </p>
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4">
-            {products.map((product) => {
+            {products.map((product, i) => {
               const price = Number(product.basePrice);
               return (
                 <Link
@@ -69,8 +69,8 @@ export default async function Home({
                     images={product.images}
                     alt={product.name}
                     hoverImageUrl={product.hoverImageUrl}
-                    peek
-                    className="aspect-[4/5] w-full bg-zinc-100"
+                    peek={i === 0}
+                    className="aspect-[2/3] w-full bg-zinc-100"
                     sizes="(max-width: 640px) 50vw, 25vw"
                   />
                   <div className="mt-2.5 space-y-0.5">

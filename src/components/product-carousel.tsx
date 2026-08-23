@@ -38,11 +38,14 @@ export function ProductCarousel({
 
   useEffect(() => {
     if (!peek || images.length <= 1) return;
-    const timeout = setTimeout(() => {
-      setPeeking(true);
-      setTimeout(() => setPeeking(false), 550);
-    }, 400);
-    return () => clearTimeout(timeout);
+    if (!window.matchMedia("(max-width: 767px)").matches) return;
+
+    const showTimeout = setTimeout(() => setPeeking(true), 500);
+    const hideTimeout = setTimeout(() => setPeeking(false), 500 + 1400);
+    return () => {
+      clearTimeout(showTimeout);
+      clearTimeout(hideTimeout);
+    };
   }, [peek, images.length]);
 
   function goTo(i: number) {
@@ -104,10 +107,12 @@ export function ProductCarousel({
         />
       ) : (
         <div
-          className={`flex h-full ${peeking ? "transition-transform duration-300 ease-out" : ""}`}
+          className="flex h-full"
           style={{
-            transform: `translateX(calc(${-index * 100}% + ${peeking ? -14 : 0}px))`,
-            transition: peeking ? undefined : "transform 250ms ease-out",
+            transform: `translateX(calc(${-index * 100}% + ${peeking ? -64 : 0}px))`,
+            transition: peeking
+              ? "transform 450ms cubic-bezier(0.22, 1, 0.36, 1)"
+              : "transform 400ms cubic-bezier(0.65, 0, 0.35, 1)",
           }}
         >
           {images.map((img, i) => (

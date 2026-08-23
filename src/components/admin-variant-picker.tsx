@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { ProductFormVariant } from "./admin-product-form";
 
-const SIZE_OPTIONS = ["Única", "XS", "S", "M", "L", "XL", "XXL"];
+const SIZE_OPTIONS = ["Unitalla", "XS", "S", "M", "L", "XL", "XXL"];
 const COLOR_OPTIONS: { name: string; hex: string }[] = [
   { name: "Negro", hex: "#000000" },
   { name: "Blanco", hex: "#ffffff" },
@@ -23,7 +23,7 @@ export function AdminVariantPicker({
 }) {
   // Most clients here only sell "unitalla" — pre-select it so the common
   // case needs zero extra clicks; sizes stay fully editable either way.
-  const [sizes, setSizes] = useState<string[]>(["Única"]);
+  const [sizes, setSizes] = useState<string[]>(["Unitalla"]);
   const [colors, setColors] = useState<{ name: string; hex: string }[]>([]);
   const [customSize, setCustomSize] = useState("");
   const [customColorName, setCustomColorName] = useState("");
@@ -78,7 +78,7 @@ export function AdminVariantPicker({
 
       <div>
         <p className="mb-1 text-xs text-zinc-500">
-          Tallas — &quot;Única&quot; ya está lista si el producto es unitalla
+          Tallas — &quot;Unitalla&quot; ya está lista si el producto es unitalla
         </p>
         <div className="flex flex-wrap gap-1.5">
           {[...new Set([...SIZE_OPTIONS, ...sizes])].map((s) => (
