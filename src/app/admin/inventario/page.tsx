@@ -12,6 +12,21 @@ export default async function AdminInventoryPage() {
     groups.get(key)!.push(v);
   }
 
+  // Within each category, group again by product so "Pants Jogger" shows as
+  // a single expandable row instead of one row per color/size combination.
+  function groupByProduct(items: typeof variants) {
+    const byProduct = new Map<string, { productName: string; variants: typeof variants }>();
+    for (const v of items) {
+      if (!byProduct.has(v.productId)) {
+        byProduct.set(v.productId, { productName: v.product.name, variants: [] });
+      }
+      byProduct.get(v.productId)!.variants.push(v);
+    }
+    return Array.from(byProduct.values()).sort((a, b) =>
+      a.productName.localeCompare(b.productName, "es"),
+    );
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-xl font-semibold">Inventario</h1>
@@ -46,92 +61,120 @@ export default async function AdminInventoryPage() {
                 )}
               </summary>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-zinc-50 text-left text-xs uppercase text-zinc-500">
-                    <tr>
-                      <th className="px-4 py-2">Producto</th>
-                      <th className="px-4 py-2">Variante</th>
-                      <th className="px-4 py-2" title="Unidades disponibles ahora mismo">
-                        Stock
-                      </th>
-                      <th
-                        className="px-4 py-2"
-                        title="A partir de cuántas unidades se envía una alerta por correo"
-                      >
-                        Alerta de stock bajo en
-                      </th>
-                      <th className="px-4 py-2">Ajustar</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-zinc-200">
-                    {items.map((v) => {
-                      const low =
-                        v.inventory && v.inventory.quantity <= v.inventory.lowStockThreshold;
-                      return (
-                        <tr key={v.id} className={low ? "bg-amber-50" : undefined}>
-                          <td className="px-4 py-2 font-medium">{v.product.name}</td>
-                          <td className="px-4 py-2 text-zinc-500">
-                            <span className="inline-flex items-center gap-1.5">
-                              {v.colorHex2 ? (
-                                <span className="grid h-3 w-3 grid-cols-2 overflow-hidden rounded-full border border-zinc-300">
-                                  <span style={{ backgroundColor: v.colorHex ?? "#ccc" }} />
-                                  <span style={{ backgroundColor: v.colorHex2 }} />
-                                </span>
-                              ) : (
-                                resolveColorHex(v.color, v.colorHex) && (
-                                  <span
-                                    className="inline-block h-3 w-3 rounded-full border border-zinc-300"
-                                    style={{
-                                      backgroundColor: resolveColorHex(v.color, v.colorHex)!,
-                                    }}
-                                  />
-                                )
-                              )}
-                              {v.color} / {v.size}
-                            </span>
-                          </td>
-                          <td
-                            className={`px-4 py-2 font-medium ${low ? "text-amber-700" : ""}`}
-                          >
-                            {v.inventory?.quantity ?? 0}
-                          </td>
-                          <td className="px-4 py-2 text-zinc-500">
-                            {v.inventory?.lowStockThreshold ?? "—"}
-                          </td>
-                          <td className="px-4 py-2">
-                            <form
-                              action={adjustInventoryAction}
-                              className="flex items-center gap-1"
-                            >
-                              <input type="hidden" name="variantId" value={v.id} />
-                              <input
-                                type="number"
-                                name="delta"
-                                placeholder="+/-"
-                                title="Cantidad a sumar (restock) o restar (ajuste)"
-                                required
-                                className="w-16 rounded-md border border-zinc-300 px-2 py-1 text-sm"
-                              />
-                              <input
-                                type="text"
-                                name="note"
-                                placeholder="Nota"
-                                className="w-28 rounded-md border border-zinc-300 px-2 py-1 text-sm"
-                              />
-                              <button
-                                type="submit"
-                                className="rounded-md border border-zinc-300 px-2 py-1 text-xs"
+              <div className="flex flex-col divide-y divide-zinc-200">
+                {groupByProduct(items).map(({ productName, variants: productVariants }) => {
+                  const productLow = productVariants.filter(
+                    (v) => v.inventory && v.inventory.quantity <= v.inventory.lowStockThreshold,
+                  ).length;
+                  const productUnits = productVariants.reduce(
+                    (sum, v) => sum + (v.inventory?.quantity ?? 0),
+                    0,
+                  );
+
+                  return (
+                    <details key={productName} className="group">
+                      <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-2.5 text-sm">
+                        <span>
+                          {productName}{" "}
+                          <span className="font-normal text-zinc-400">
+                            ({productVariants.length} variantes · {productUnits} unidades)
+                          </span>
+                        </span>
+                        {productLow > 0 && (
+                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-700">
+                            {productLow} bajo
+                          </span>
+                        )}
+                      </summary>
+
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead className="bg-zinc-50 text-left text-xs uppercase text-zinc-500">
+                            <tr>
+                              <th className="px-4 py-2">Variante</th>
+                              <th className="px-4 py-2" title="Unidades disponibles ahora mismo">
+                                Stock
+                              </th>
+                              <th
+                                className="px-4 py-2"
+                                title="A partir de cuántas unidades se envía una alerta por correo"
                               >
-                                Aplicar
-                              </button>
-                            </form>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                                Alerta de stock bajo en
+                              </th>
+                              <th className="px-4 py-2">Ajustar</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-zinc-200">
+                            {productVariants.map((v) => {
+                              const low =
+                                v.inventory && v.inventory.quantity <= v.inventory.lowStockThreshold;
+                              return (
+                                <tr key={v.id} className={low ? "bg-amber-50" : undefined}>
+                                  <td className="px-4 py-2 text-zinc-500">
+                                    <span className="inline-flex items-center gap-1.5">
+                                      {v.colorHex2 ? (
+                                        <span className="grid h-3 w-3 grid-cols-2 overflow-hidden rounded-full border border-zinc-300">
+                                          <span style={{ backgroundColor: v.colorHex ?? "#ccc" }} />
+                                          <span style={{ backgroundColor: v.colorHex2 }} />
+                                        </span>
+                                      ) : (
+                                        resolveColorHex(v.color, v.colorHex) && (
+                                          <span
+                                            className="inline-block h-3 w-3 rounded-full border border-zinc-300"
+                                            style={{
+                                              backgroundColor: resolveColorHex(v.color, v.colorHex)!,
+                                            }}
+                                          />
+                                        )
+                                      )}
+                                      {v.color} / {v.size}
+                                    </span>
+                                  </td>
+                                  <td
+                                    className={`px-4 py-2 font-medium ${low ? "text-amber-700" : ""}`}
+                                  >
+                                    {v.inventory?.quantity ?? 0}
+                                  </td>
+                                  <td className="px-4 py-2 text-zinc-500">
+                                    {v.inventory?.lowStockThreshold ?? "—"}
+                                  </td>
+                                  <td className="px-4 py-2">
+                                    <form
+                                      action={adjustInventoryAction}
+                                      className="flex items-center gap-1"
+                                    >
+                                      <input type="hidden" name="variantId" value={v.id} />
+                                      <input
+                                        type="number"
+                                        name="delta"
+                                        placeholder="+/-"
+                                        title="Cantidad a sumar (restock) o restar (ajuste)"
+                                        required
+                                        className="w-16 rounded-md border border-zinc-300 px-2 py-1 text-sm"
+                                      />
+                                      <input
+                                        type="text"
+                                        name="note"
+                                        placeholder="Nota"
+                                        className="w-28 rounded-md border border-zinc-300 px-2 py-1 text-sm"
+                                      />
+                                      <button
+                                        type="submit"
+                                        className="rounded-md border border-zinc-300 px-2 py-1 text-xs"
+                                      >
+                                        Aplicar
+                                      </button>
+                                    </form>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </details>
+                  );
+                })}
               </div>
             </details>
           );

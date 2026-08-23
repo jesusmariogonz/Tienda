@@ -11,7 +11,10 @@ export async function searchVariants(query: string) {
         { product: { name: { contains: query, mode: "insensitive" } } },
       ],
     },
-    include: { product: true, inventory: true },
+    include: {
+      product: { include: { images: { orderBy: { position: "asc" }, take: 1 } } },
+      inventory: true,
+    },
     take: 15,
   });
 }

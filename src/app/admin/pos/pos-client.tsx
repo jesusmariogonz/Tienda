@@ -11,6 +11,7 @@ type SearchResult = {
   color: string;
   price: number;
   stock: number;
+  imageUrl: string | null;
 };
 
 type TicketItem = SearchResult & { quantity: number };
@@ -22,6 +23,21 @@ const PAYMENT_METHODS = [
 ] as const;
 
 type PaymentMethodKey = (typeof PAYMENT_METHODS)[number]["key"];
+
+type CompletedSale = {
+  saleNumber: string;
+  total: number;
+  items: TicketItem[];
+  payments: { method: PaymentMethodKey; amount: number }[];
+  note: string;
+  date: string;
+};
+
+const PAYMENT_LABELS: Record<PaymentMethodKey, string> = {
+  CASH: "Efectivo",
+  CARD: "Tarjeta",
+  TRANSFER: "Transferencia",
+};
 
 export function PosClient() {
   const [query, setQuery] = useState("");
@@ -35,6 +51,7 @@ export function PosClient() {
   });
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [lastSale, setLastSale] = useState<CompletedSale | null>(null);
   const [isPending, startTransition] = useTransition();
 
   function handleSearch(value: string) {
@@ -97,6 +114,14 @@ export function PosClient() {
         note || undefined,
       );
       setMessage(`Venta ${result.saleNumber} registrada — ${formatPrice(result.total)}`);
+      setLastSale({
+        saleNumber: result.saleNumber,
+        total: result.total,
+        items: ticket,
+        payments: paymentInputs,
+        note,
+        date: new Date().toLocaleString("es-MX"),
+      });
       setTicket([]);
       setNote("");
       setPayments({ CASH: "", CARD: "", TRANSFER: "" });
@@ -105,6 +130,10 @@ export function PosClient() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo registrar la venta");
     }
+  }
+
+  function handlePrint() {
+    window.print();
   }
 
   return (
@@ -120,12 +149,20 @@ export function PosClient() {
         {isPending && <p className="text-xs text-zinc-400">Buscando…</p>}
         <ul className="flex flex-col divide-y divide-zinc-200 rounded-lg border border-zinc-200">
           {results.map((r) => (
-            <li key={r.id} className="flex items-center justify-between px-3 py-2 text-sm">
-              <div>
-                <p className="font-medium">{r.productName}</p>
-                <p className="text-xs text-zinc-500">
-                  {r.color}/{r.size} · {formatPrice(r.price)} · stock {r.stock}
-                </p>
+            <li key={r.id} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md bg-zinc-100">
+                  {r.imageUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={r.imageUrl} alt="" className="h-full w-full object-cover" />
+                  )}
+                </div>
+                <div>
+                  <p className="font-medium">{r.productName}</p>
+                  <p className="text-xs text-zinc-500">
+                    {r.color}/{r.size} · {formatPrice(r.price)} · stock {r.stock}
+                  </p>
+                </div>
               </div>
               <button
                 type="button"
@@ -225,7 +262,20 @@ export function PosClient() {
         </div>
 
         {error && <p className="text-sm text-red-600">{error}</p>}
-        {message && <p className="text-sm text-green-700">{message}</p>}
+        {message && (
+          <div className="flex items-center justify-between gap-2 rounded-md border border-green-200 bg-green-50 px-3 py-2">
+            <p className="text-sm text-green-700">{message}</p>
+            {lastSale && (
+              <button
+                type="button"
+                onClick={handlePrint}
+                className="shrink-0 rounded-md border border-green-700 px-3 py-1 text-xs font-medium text-green-700"
+              >
+                Imprimir ticket
+              </button>
+            )}
+          </div>
+        )}
 
         <button
           type="button"
@@ -236,6 +286,80 @@ export function PosClient() {
           Registrar venta
         </button>
       </div>
+
+      {lastSale && (
+        <div id="pos-print-ticket" className="hidden">
+          <div className="ticket">
+            <p className="ticket-center ticket-bold">DUPE FIT</p>
+            <p className="ticket-center">Venta {lastSale.saleNumber}</p>
+            <p className="ticket-center">{lastSale.date}</p>
+            <hr />
+            {lastSale.items.map((item) => (
+              <div key={item.id} className="ticket-row">
+                <span>
+                  {item.productName} ({item.color}/{item.size}) x{item.quantity}
+                </span>
+                <span>{formatPrice(item.price * item.quantity)}</span>
+              </div>
+            ))}
+            <hr />
+            <div className="ticket-row ticket-bold">
+              <span>Total</span>
+              <span>{formatPrice(lastSale.total)}</span>
+            </div>
+            <hr />
+            {lastSale.payments.map((p) => (
+              <div key={p.method} className="ticket-row">
+                <span>{PAYMENT_LABELS[p.method]}</span>
+                <span>{formatPrice(p.amount)}</span>
+              </div>
+            ))}
+            {lastSale.note && (
+              <>
+                <hr />
+                <p>{lastSale.note}</p>
+              </>
+            )}
+            <hr />
+            <p className="ticket-center">¡Gracias por tu compra!</p>
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          #pos-print-ticket,
+          #pos-print-ticket * {
+            visibility: visible;
+          }
+          #pos-print-ticket {
+            display: block !important;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 80mm;
+          }
+          .ticket {
+            font-family: monospace;
+            font-size: 12px;
+            padding: 4mm;
+          }
+          .ticket-center {
+            text-align: center;
+          }
+          .ticket-bold {
+            font-weight: bold;
+          }
+          .ticket-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+          }
+        }
+      `}</style>
     </div>
   );
 }

@@ -18,6 +18,7 @@ export async function searchVariantsAction(query: string) {
     color: v.color,
     price: v.price ? Number(v.price) : Number(v.product.basePrice),
     stock: v.inventory?.quantity ?? 0,
+    imageUrl: v.product.images[0]?.url ?? null,
   }));
 }
 
