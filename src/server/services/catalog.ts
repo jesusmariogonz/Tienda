@@ -59,7 +59,12 @@ export async function listActiveProducts(filters: CatalogFilters = {}) {
 
 export function listWholesaleProducts() {
   return prisma.product.findMany({
-    where: { active: true, wholesaleEnabled: true },
+    where: {
+      active: true,
+      wholesaleEnabled: true,
+      wholesaleMinQty: { not: null },
+      wholesaleDiscountPercent: { not: null },
+    },
     select: { name: true, wholesaleMinQty: true, wholesaleDiscountPercent: true },
   });
 }

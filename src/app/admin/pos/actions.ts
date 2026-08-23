@@ -2,7 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
-import { searchVariants, registerPosSaleWithAlerts, type PosSaleItemInput } from "@/server/services/pos";
+import {
+  searchVariants,
+  registerPosSaleWithAlerts,
+  type PosSaleItemInput,
+  type PosPaymentInput,
+} from "@/server/services/pos";
 
 export async function searchVariantsAction(query: string) {
   const variants = await searchVariants(query);
@@ -18,12 +23,18 @@ export async function searchVariantsAction(query: string) {
 
 export async function registerPosSaleAction(
   items: PosSaleItemInput[],
+  payments: PosPaymentInput[],
   note?: string,
 ) {
   const session = await auth();
   if (!session?.user) throw new Error("No autenticado");
 
-  const sale = await registerPosSaleWithAlerts(items, session.user.id as string, note);
+  const sale = await registerPosSaleWithAlerts(
+    items,
+    session.user.id as string,
+    payments,
+    note,
+  );
   revalidatePath("/admin/pos");
   revalidatePath("/admin/inventario");
   revalidatePath("/admin/movimientos");

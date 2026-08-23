@@ -4,8 +4,16 @@ import {
   getSalesByPeriod,
   getTopProducts,
   getChannelSummary,
+  getSalesByPaymentMethod,
+  getSalesByCategory,
   type Granularity,
 } from "@/server/services/reports";
+
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  CASH: "Efectivo",
+  CARD: "Tarjeta",
+  TRANSFER: "Transferencia",
+};
 
 const RANGE_OPTIONS = [
   { key: "7d", label: "7 días", days: 7, granularity: "day" as Granularity },
@@ -58,10 +66,12 @@ export default async function ReportsPage({
     exportQuery = `range=${option.key}`;
   }
 
-  const [byPeriod, topProducts, summary] = await Promise.all([
+  const [byPeriod, topProducts, summary, byPaymentMethod, byCategory] = await Promise.all([
     getSalesByPeriod(from, to, granularity),
     getTopProducts(from, to, 10),
     getChannelSummary(from, to),
+    getSalesByPaymentMethod(from, to),
+    getSalesByCategory(from, to),
   ]);
 
   const maxTotal = Math.max(1, ...byPeriod.map((p) => p.total));
@@ -189,6 +199,85 @@ export default async function ReportsPage({
           <span className="flex items-center gap-1">
             <span className="inline-block h-2 w-2 bg-zinc-400" /> Mostrador
           </span>
+        </div>
+      </div>
+
+      <div className="grid gap-8 sm:grid-cols-2">
+        <div>
+          <h2 className="mb-3 text-sm font-medium">Ventas por tipo de pago (mostrador)</h2>
+          <div className="overflow-x-auto rounded-lg border border-zinc-200">
+            <table className="w-full text-sm">
+              <thead className="bg-zinc-50 text-left text-xs uppercase text-zinc-500">
+                <tr>
+                  <th className="px-4 py-2">Tipo de pago</th>
+                  <th className="px-4 py-2">Transacciones</th>
+                  <th className="px-4 py-2">Monto</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-200">
+                {byPaymentMethod.length === 0 ? (
+                  <tr>
+                    <td className="px-4 py-3 text-zinc-400" colSpan={3}>
+                      Sin ventas de mostrador en este periodo.
+                    </td>
+                  </tr>
+                ) : (
+                  <>
+                    {byPaymentMethod.map((p) => (
+                      <tr key={p.method}>
+                        <td className="px-4 py-2 font-medium">
+                          {PAYMENT_METHOD_LABELS[p.method] ?? p.method}
+                        </td>
+                        <td className="px-4 py-2">{p.transactions}</td>
+                        <td className="px-4 py-2">{formatPrice(p.amount)}</td>
+                      </tr>
+                    ))}
+                    <tr className="font-medium">
+                      <td className="px-4 py-2">Total</td>
+                      <td className="px-4 py-2">
+                        {byPaymentMethod.reduce((s, p) => s + p.transactions, 0)}
+                      </td>
+                      <td className="px-4 py-2">
+                        {formatPrice(byPaymentMethod.reduce((s, p) => s + p.amount, 0))}
+                      </td>
+                    </tr>
+                  </>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div>
+          <h2 className="mb-3 text-sm font-medium">Ventas por categoría</h2>
+          <div className="overflow-x-auto rounded-lg border border-zinc-200">
+            <table className="w-full text-sm">
+              <thead className="bg-zinc-50 text-left text-xs uppercase text-zinc-500">
+                <tr>
+                  <th className="px-4 py-2">Categoría</th>
+                  <th className="px-4 py-2">Unidades</th>
+                  <th className="px-4 py-2">Ingresos</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-200">
+                {byCategory.length === 0 ? (
+                  <tr>
+                    <td className="px-4 py-3 text-zinc-400" colSpan={3}>
+                      Sin ventas en este periodo.
+                    </td>
+                  </tr>
+                ) : (
+                  byCategory.map((c) => (
+                    <tr key={c.categoryName}>
+                      <td className="px-4 py-2 font-medium">{c.categoryName}</td>
+                      <td className="px-4 py-2">{c.quantity}</td>
+                      <td className="px-4 py-2">{formatPrice(c.revenue)}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 

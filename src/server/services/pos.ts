@@ -23,15 +23,21 @@ function generateSaleNumber() {
 }
 
 export type PosSaleItemInput = { variantId: string; quantity: number };
+export type PosPaymentInput = { method: "CASH" | "CARD" | "TRANSFER"; amount: number };
 
 /** Registers a counter sale, decrementing the same Inventory the storefront
  * uses. This is record-only — no payment is processed here. */
 export async function registerPosSale(
   items: PosSaleItemInput[],
   userId: string,
+  payments: PosPaymentInput[],
   note?: string,
 ) {
   if (items.length === 0) throw new Error("Agrega al menos un producto");
+  if (payments.length === 0) throw new Error("Indica cómo se pagó la venta");
+  if (payments.some((p) => p.amount <= 0)) {
+    throw new Error("Los montos de pago deben ser mayores a cero");
+  }
 
   return prisma.$transaction(async (tx) => {
     const variants = await tx.productVariant.findMany({
@@ -60,6 +66,13 @@ export async function registerPosSale(
       saleItemsData.push({ variantId: variant.id, quantity: item.quantity, unitPrice });
     }
 
+    const paidTotal = payments.reduce((sum, p) => sum + p.amount, 0);
+    if (Math.abs(paidTotal - total) > 0.01) {
+      throw new Error(
+        `Los pagos (${paidTotal.toFixed(2)}) no coinciden con el total (${total.toFixed(2)})`,
+      );
+    }
+
     const sale = await tx.posSale.create({
       data: {
         saleNumber: generateSaleNumber(),
@@ -67,8 +80,9 @@ export async function registerPosSale(
         total,
         note,
         items: { create: saleItemsData },
+        payments: { create: payments.map((p) => ({ method: p.method, amount: p.amount })) },
       },
-      include: { items: true },
+      include: { items: true, payments: true },
     });
 
     for (const item of saleItemsData) {
@@ -97,9 +111,10 @@ export async function registerPosSale(
 export async function registerPosSaleWithAlerts(
   items: PosSaleItemInput[],
   userId: string,
+  payments: PosPaymentInput[],
   note?: string,
 ) {
-  const sale = await registerPosSale(items, userId, note);
+  const sale = await registerPosSale(items, userId, payments, note);
 
   for (const item of items) {
     await checkLowStockAndAlert(item.variantId).catch((err) =>
@@ -114,6 +129,7 @@ export function listPosSales(limit = 50) {
   return prisma.posSale.findMany({
     include: {
       items: { include: { variant: { include: { product: true } } } },
+      payments: true,
       user: true,
     },
     orderBy: { createdAt: "desc" },

@@ -15,11 +15,24 @@ type SearchResult = {
 
 type TicketItem = SearchResult & { quantity: number };
 
+const PAYMENT_METHODS = [
+  { key: "CASH", label: "Efectivo" },
+  { key: "CARD", label: "Tarjeta" },
+  { key: "TRANSFER", label: "Transferencia" },
+] as const;
+
+type PaymentMethodKey = (typeof PAYMENT_METHODS)[number]["key"];
+
 export function PosClient() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [ticket, setTicket] = useState<TicketItem[]>([]);
   const [note, setNote] = useState("");
+  const [payments, setPayments] = useState<Record<PaymentMethodKey, string>>({
+    CASH: "",
+    CARD: "",
+    TRANSFER: "",
+  });
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -59,18 +72,34 @@ export function PosClient() {
   }
 
   const total = ticket.reduce((sum, i) => sum + i.price * i.quantity, 0);
+  const paidTotal = PAYMENT_METHODS.reduce((sum, m) => sum + (Number(payments[m.key]) || 0), 0);
+  const remaining = Math.round((total - paidTotal) * 100) / 100;
+
+  function setPaymentAmount(method: PaymentMethodKey, value: string) {
+    setPayments((prev) => ({ ...prev, [method]: value }));
+  }
+
+  function payRemainingWith(method: PaymentMethodKey) {
+    setPayments((prev) => ({ ...prev, [method]: Math.max(0, remaining + (Number(prev[method]) || 0)).toFixed(2) }));
+  }
 
   async function handleRegister() {
     setError(null);
     setMessage(null);
+    const paymentInputs = PAYMENT_METHODS.filter((m) => Number(payments[m.key]) > 0).map((m) => ({
+      method: m.key,
+      amount: Number(payments[m.key]),
+    }));
     try {
       const result = await registerPosSaleAction(
         ticket.map((i) => ({ variantId: i.id, quantity: i.quantity })),
+        paymentInputs,
         note || undefined,
       );
       setMessage(`Venta ${result.saleNumber} registrada — ${formatPrice(result.total)}`);
       setTicket([]);
       setNote("");
+      setPayments({ CASH: "", CARD: "", TRANSFER: "" });
       setResults([]);
       setQuery("");
     } catch (err) {
@@ -160,13 +189,48 @@ export function PosClient() {
           <span>{formatPrice(total)}</span>
         </div>
 
+        <div className="flex flex-col gap-2 rounded-lg border border-zinc-200 p-3">
+          <h3 className="text-sm font-medium">Forma de pago</h3>
+          {PAYMENT_METHODS.map((m) => (
+            <div key={m.key} className="flex items-center gap-2">
+              <span className="w-28 text-sm text-zinc-600">{m.label}</span>
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                placeholder="0.00"
+                value={payments[m.key]}
+                onChange={(e) => setPaymentAmount(m.key, e.target.value)}
+                className="w-24 rounded-md border border-zinc-300 px-2 py-1 text-sm"
+              />
+              <button
+                type="button"
+                onClick={() => payRemainingWith(m.key)}
+                disabled={ticket.length === 0 || remaining <= 0}
+                className="text-xs text-zinc-500 underline disabled:opacity-30"
+              >
+                Cobrar restante
+              </button>
+            </div>
+          ))}
+          <div
+            className={`text-xs ${remaining === 0 ? "text-green-700" : "text-zinc-500"}`}
+          >
+            {remaining > 0
+              ? `Falta ${formatPrice(remaining)} por cobrar`
+              : remaining < 0
+                ? `Sobran ${formatPrice(-remaining)}`
+                : "Pago completo"}
+          </div>
+        </div>
+
         {error && <p className="text-sm text-red-600">{error}</p>}
         {message && <p className="text-sm text-green-700">{message}</p>}
 
         <button
           type="button"
           onClick={handleRegister}
-          disabled={ticket.length === 0}
+          disabled={ticket.length === 0 || remaining !== 0}
           className="w-full rounded-full bg-black py-3 text-sm font-medium text-white disabled:opacity-40"
         >
           Registrar venta

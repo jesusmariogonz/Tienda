@@ -285,6 +285,12 @@ model OrderItem {
 
 // ---------- POS (in-store, record-only) ----------
 
+enum PaymentMethod {
+  CASH
+  CARD
+  TRANSFER
+}
+
 model PosSale {
   id        String   @id @default(cuid())
   saleNumber String  @unique
@@ -295,9 +301,23 @@ model PosSale {
   createdAt DateTime @default(now())
 
   items               PosSaleItem[]
+  payments            PosSalePayment[]
   inventoryMovements  InventoryMovement[]
 
   @@index([createdAt])
+}
+
+// A sale can be split across payment methods (e.g. $200 cash + $500 card),
+// so amounts live on their own rows rather than a single field on PosSale.
+model PosSalePayment {
+  id        String        @id @default(cuid())
+  posSaleId String
+  posSale   PosSale       @relation(fields: [posSaleId], references: [id], onDelete: Cascade)
+  method    PaymentMethod
+  amount    Decimal       @db.Decimal(10, 2)
+
+  @@index([posSaleId])
+  @@index([method])
 }
 
 model PosSaleItem {
