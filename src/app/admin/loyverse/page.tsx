@@ -1,7 +1,7 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { loyverseConfigured } from "@/lib/loyverse";
 import { appUrl } from "@/lib/config";
-import { LoyverseSyncButton } from "@/components/loyverse-sync-button";
 
 export default async function AdminLoyversePage() {
   const configured = loyverseConfigured();
@@ -50,25 +50,25 @@ export default async function AdminLoyversePage() {
       </div>
 
       <div className="rounded-lg border border-zinc-200 p-4">
-        <h2 className="mb-2 text-sm font-semibold">2. Igualar los SKU</h2>
-        <p className="text-sm text-zinc-600">
-          El emparejamiento se hace por SKU. En cada producto de Loyverse, pon
-          como SKU el mismo código que ya generamos aquí para esa variante
-          (visible en /admin/productos al editar un producto — código de barras
-          incluido). Si no coinciden, esa variante no se podrá sincronizar.
-        </p>
-      </div>
-
-      <div className="rounded-lg border border-zinc-200 p-4">
         <h2 className="mb-2 text-sm font-semibold">
-          3. Sincronizar el catálogo (una vez, y cada vez que agregues productos)
+          2. Vincular productos (una vez, y cada vez que agregues productos)
         </h2>
-        <LoyverseSyncButton />
+        <p className="mb-3 text-sm text-zinc-600">
+          No hace falta escribir nada en Loyverse — aquí eliges qué producto
+          de Loyverse corresponde a cuál de esta tienda, y el sistema lo
+          recuerda. Cuando el nombre coincide, ya viene sugerido.
+        </p>
+        <Link
+          href="/admin/loyverse/mapear"
+          className="inline-block rounded-md bg-black px-4 py-2 text-sm font-medium text-white"
+        >
+          Vincular productos con Loyverse
+        </Link>
       </div>
 
       <div className="rounded-lg border border-zinc-200 p-4">
         <h2 className="mb-2 text-sm font-semibold">
-          4. Webhook — Loyverse avisa cuando vendes algo en persona
+          3. Webhook — Loyverse avisa cuando vendes algo en persona
         </h2>
         <p className="text-sm text-zinc-600">
           En Loyverse Back Office: Settings → Webhooks → agrega uno con evento{" "}

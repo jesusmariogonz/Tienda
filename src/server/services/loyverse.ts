@@ -4,39 +4,136 @@ import {
   pushLoyverseInventory,
   loyverseConfigured,
   loyverseStoreId,
+  type LoyverseItemVariant,
 } from "@/lib/loyverse";
 
-/** Matches every Loyverse item variant to our ProductVariant by SKU and
- * stores the Loyverse variant_id on it, so future webhook events/pushes
- * don't need to re-resolve the mapping by SKU. Run this once after
- * connecting Loyverse, and again any time SKUs change on either side.
- * Requires that Loyverse's item variant SKUs match ours exactly — set
- * those in Loyverse's Back Office to whatever this store already
- * generated (see the variant's SKU in /admin/productos). */
-export async function syncLoyverseCatalogMapping() {
+function normalize(text: string) {
+  return text
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+export type MappingVariant = { id: string; size: string; color: string; sku: string };
+export type MappingLoyverseItem = {
+  itemId: string;
+  itemName: string;
+  variants: LoyverseItemVariant[];
+};
+export type MappingProduct = {
+  productId: string;
+  productName: string;
+  variants: MappingVariant[];
+  suggestedItemId: string | null;
+};
+
+/** Everything the /admin/loyverse/mapear page needs: our unmapped active
+ * products/variants, the full Loyverse item catalog to pick from, and a
+ * best-guess suggestion per product (matched by normalized name) so most
+ * of the 1:1 linking can happen with a single click instead of hand-typing
+ * SKUs into Loyverse (which most stores never bother doing anyway). */
+export async function getLoyverseMappingCandidates(): Promise<{
+  products: MappingProduct[];
+  loyverseItems: MappingLoyverseItem[];
+}> {
   const loyverseVariants = await listAllLoyverseVariants();
-  if (loyverseVariants.length === 0) {
-    return { matched: 0, unmatched: 0, total: 0 };
+  const loyverseItemsMap = new Map<string, MappingLoyverseItem>();
+  for (const v of loyverseVariants) {
+    if (!loyverseItemsMap.has(v.itemId)) {
+      loyverseItemsMap.set(v.itemId, { itemId: v.itemId, itemName: v.itemName, variants: [] });
+    }
+    loyverseItemsMap.get(v.itemId)!.variants.push(v);
   }
+  const loyverseItems = Array.from(loyverseItemsMap.values());
 
   const ourVariants = await prisma.productVariant.findMany({
-    where: { sku: { in: loyverseVariants.map((v) => v.sku) } },
-    select: { id: true, sku: true },
+    where: { active: true, loyverseVariantId: null },
+    include: { product: true },
+    orderBy: [{ product: { name: "asc" } }],
   });
-  const bySku = new Map(ourVariants.map((v) => [v.sku, v.id]));
 
-  let matched = 0;
-  for (const lv of loyverseVariants) {
-    const ourVariantId = bySku.get(lv.sku);
-    if (!ourVariantId) continue;
-    await prisma.productVariant.update({
-      where: { id: ourVariantId },
-      data: { loyverseVariantId: lv.variantId },
+  const byProduct = new Map<string, MappingProduct>();
+  for (const v of ourVariants) {
+    if (!byProduct.has(v.productId)) {
+      const suggestion = loyverseItems.find(
+        (li) => normalize(li.itemName) === normalize(v.product.name),
+      );
+      byProduct.set(v.productId, {
+        productId: v.productId,
+        productName: v.product.name,
+        variants: [],
+        suggestedItemId: suggestion?.itemId ?? null,
+      });
+    }
+    byProduct.get(v.productId)!.variants.push({
+      id: v.id,
+      size: v.size,
+      color: v.color,
+      sku: v.sku,
     });
-    matched++;
   }
 
-  return { matched, unmatched: loyverseVariants.length - matched, total: loyverseVariants.length };
+  return { products: Array.from(byProduct.values()), loyverseItems };
+}
+
+/** Auto-pairs each of our variants under a product to a Loyverse variant
+ * under the chosen item, matching on color/size text (either order,
+ * accent/case-insensitive) — no writes to Loyverse, just our own
+ * loyverseVariantId column. Variants that can't be confidently paired are
+ * left unmapped and returned so the admin can link them by hand. */
+export async function linkLoyverseItem(productId: string, loyverseItemId: string) {
+  const [ourVariants, loyverseVariants] = await Promise.all([
+    prisma.productVariant.findMany({
+      where: { productId, active: true, loyverseVariantId: null },
+    }),
+    listAllLoyverseVariants(),
+  ]);
+  const itemVariants = loyverseVariants.filter((v) => v.itemId === loyverseItemId);
+  const usedLoyverseIds = new Set(
+    (
+      await prisma.productVariant.findMany({
+        where: { loyverseVariantId: { not: null } },
+        select: { loyverseVariantId: true },
+      })
+    ).map((v) => v.loyverseVariantId),
+  );
+
+  let linked = 0;
+  const unresolved: MappingVariant[] = [];
+
+  for (const ours of ourVariants) {
+    const wanted = normalize(`${ours.color} ${ours.size}`);
+    const wantedAlt = normalize(`${ours.size} ${ours.color}`);
+    const match = itemVariants.find((lv) => {
+      if (usedLoyverseIds.has(lv.variantId)) return false;
+      const label = normalize(lv.optionLabel ?? "");
+      return label === wanted || label === wantedAlt;
+    });
+
+    if (match) {
+      await prisma.productVariant.update({
+        where: { id: ours.id },
+        data: { loyverseVariantId: match.variantId },
+      });
+      usedLoyverseIds.add(match.variantId);
+      linked++;
+    } else {
+      unresolved.push({ id: ours.id, size: ours.size, color: ours.color, sku: ours.sku });
+    }
+  }
+
+  return { linked, unresolved };
+}
+
+/** Manually links one of our variants to one specific Loyverse variant —
+ * used to resolve whatever linkLoyverseItem couldn't auto-pair. */
+export async function linkLoyverseVariant(ourVariantId: string, loyverseVariantId: string) {
+  await prisma.productVariant.update({
+    where: { id: ourVariantId },
+    data: { loyverseVariantId },
+  });
 }
 
 /** Applies a stock level Loyverse reports (via webhook) to our own

@@ -31,14 +31,16 @@ async function loyverseFetch(path: string, init: RequestInit = {}) {
 
 export type LoyverseItemVariant = {
   variantId: string;
+  itemId: string;
   itemName: string;
   sku: string;
+  optionLabel: string | null;
 };
 
 /** Paginates through every item in the Loyverse catalog, flattened to one
- * entry per variant (Loyverse nests variants under items) — used to match
- * our ProductVariant.sku against Loyverse's variant_id once, so later
- * syncs don't need to re-resolve the mapping. */
+ * entry per variant (Loyverse nests variants under items). Included
+ * whether or not it has a SKU set — most stores never bother typing SKUs
+ * into Loyverse, so matching can't depend on that field existing. */
 export async function listAllLoyverseVariants(): Promise<LoyverseItemVariant[]> {
   if (!isConfigured()) return [];
 
@@ -52,7 +54,16 @@ export async function listAllLoyverseVariants(): Promise<LoyverseItemVariant[]> 
 
     for (const item of page.items ?? []) {
       for (const v of item.variants ?? []) {
-        if (v.sku) variants.push({ variantId: v.variant_id, itemName: item.item_name, sku: v.sku });
+        const optionLabel = [v.option1_value, v.option2_value, v.option3_value]
+          .filter(Boolean)
+          .join("/");
+        variants.push({
+          variantId: v.variant_id,
+          itemId: item.id,
+          itemName: item.item_name,
+          sku: v.sku ?? "",
+          optionLabel: optionLabel || null,
+        });
       }
     }
     cursor = page.cursor || undefined;
