@@ -35,6 +35,18 @@ function slugify(value: string) {
     .replace(/(^-|-$)/g, "");
 }
 
+// SKUs must stay ASCII-only — they get encoded as CODE128 barcodes, which
+// can't represent accented characters (e.g. talla "Única"), and Loyverse/
+// scanner input is plain ASCII too.
+function skuSafe(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
 export type VariantInput = {
   id?: string;
   size: string;
@@ -91,7 +103,7 @@ export async function createProduct(input: ProductInput) {
       },
       variants: {
         create: input.variants.map((v) => ({
-          sku: `${slug}-${v.size}-${v.color}`.toUpperCase().replace(/\s+/g, "-"),
+          sku: `${slug}-${skuSafe(v.size)}-${skuSafe(v.color)}`,
           size: v.size,
           color: v.color,
           colorHex: v.colorHex,
@@ -185,7 +197,7 @@ export async function updateProduct(id: string, input: ProductInput) {
       await prisma.productVariant.create({
         data: {
           productId: id,
-          sku: `${product.slug}-${v.size}-${v.color}`.toUpperCase().replace(/\s+/g, "-"),
+          sku: `${product.slug}-${skuSafe(v.size)}-${skuSafe(v.color)}`,
           size: v.size,
           color: v.color,
           colorHex: v.colorHex,

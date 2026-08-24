@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import JsBarcode from "jsbarcode";
 
 /** Renders a Code128 barcode (readable by any standard USB/handheld
@@ -18,17 +18,34 @@ export function BarcodeSvg({
   fontSize?: number;
 }) {
   const ref = useRef<SVGSVGElement>(null);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     if (!ref.current) return;
-    JsBarcode(ref.current, value, {
-      format: "CODE128",
-      height,
-      width,
-      fontSize,
-      margin: 4,
-    });
+    try {
+      JsBarcode(ref.current, value, {
+        format: "CODE128",
+        height,
+        width,
+        fontSize,
+        margin: 4,
+      });
+      setError(false);
+    } catch (err) {
+      // CODE128 can't encode every character (e.g. accents) — never let a
+      // bad SKU take down the whole page, just show a fallback instead.
+      console.error("[barcode] failed to render", value, err);
+      setError(true);
+    }
   }, [value, height, width, fontSize]);
+
+  if (error) {
+    return (
+      <p className="text-xs text-red-600">
+        No se pudo generar el código para &quot;{value}&quot;
+      </p>
+    );
+  }
 
   return <svg ref={ref} />;
 }
