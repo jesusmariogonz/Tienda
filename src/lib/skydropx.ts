@@ -150,6 +150,16 @@ function buildParcel(weightKg?: number) {
 
 const READY_RATE_STATUSES = new Set(["approved", "price_found_internal", "price_found_external"]);
 
+// Only these carriers are offered/booked — the store owner only wants to
+// deal with the ones they actually trust/have a relationship with, even
+// though Skydropx quotes many more.
+const ALLOWED_CARRIERS = ["estafeta", "fedex", "dhl"];
+
+function isAllowedCarrier(providerName: string) {
+  const normalized = providerName.toLowerCase();
+  return ALLOWED_CARRIERS.some((carrier) => normalized.includes(carrier));
+}
+
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -170,7 +180,7 @@ type RawRate = {
 
 function mapRates(rawRates: RawRate[]): SkydropxRate[] {
   return rawRates
-    .filter((r) => READY_RATE_STATUSES.has(r.status))
+    .filter((r) => READY_RATE_STATUSES.has(r.status) && isAllowedCarrier(r.provider_name))
     .map((r) => ({
       id: r.id,
       providerName: r.provider_name,
