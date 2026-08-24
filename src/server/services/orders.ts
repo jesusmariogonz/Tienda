@@ -3,6 +3,7 @@ import { Prisma } from "@/generated/prisma";
 import { checkLowStockAndAlert, sendOrderConfirmationEmail } from "./notifications";
 import { resolveShippingCost, type ShippingSelection } from "./shipping";
 import { saveSkydropxQuote } from "./shipments";
+import { pushInventoryToLoyverse } from "./loyverse";
 
 export type CheckoutItemInput = {
   variantId: string;
@@ -192,6 +193,10 @@ export async function confirmOrderPaid(orderId: string) {
       console.error("[orders] failed to check low stock:", err),
     );
   }
+
+  await pushInventoryToLoyverse(order.items.map((item) => item.variantId)).catch((err) =>
+    console.error("[orders] failed to push inventory to Loyverse:", err),
+  );
 }
 
 /** Per-line amounts (in cents) that sum exactly to order.total, scaling

@@ -104,6 +104,11 @@ model ProductVariant {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Set by the Loyverse catalog sync (matched by SKU) — lets webhook/push
+  // updates address the right Loyverse variant without re-matching by SKU
+  // on every call.
+  loyverseVariantId String? @unique
+
   inventory           Inventory?
   inventoryMovements  InventoryMovement[]
   orderItems          OrderItem[]
@@ -134,6 +139,7 @@ enum InventoryMovementType {
   POS_SALE
   ADJUSTMENT
   RETURN
+  LOYVERSE_SYNC
 }
 
 model InventoryMovement {
