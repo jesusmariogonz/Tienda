@@ -87,7 +87,7 @@ export async function pushLoyverseInventory(updates: LoyverseInventoryLevel[]) {
       inventory_levels: updates.map((u) => ({
         variant_id: u.variantId,
         store_id: u.storeId,
-        stock_count: u.quantity,
+        stock_after: u.quantity,
       })),
     }),
   });
