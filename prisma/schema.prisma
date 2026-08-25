@@ -200,6 +200,9 @@ model Coupon {
 model Order {
   id              String          @id @default(cuid())
   orderNumber     String          @unique
+  // Sequential, human-facing number for display (#DF-00123) — orderNumber
+  // stays the internal unique id used by webhooks/logs.
+  orderSeq        Int             @default(autoincrement()) @unique
   status          OrderStatus     @default(PENDING)
   customerEmail   String
   customerName    String?
