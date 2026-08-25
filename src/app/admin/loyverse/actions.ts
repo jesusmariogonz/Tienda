@@ -2,7 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
-import { linkLoyverseItem, linkLoyverseVariant } from "@/server/services/loyverse";
+import {
+  linkLoyverseItem,
+  linkLoyverseVariant,
+  unlinkLoyverseVariant,
+} from "@/server/services/loyverse";
 
 export async function linkLoyverseItemAction(productId: string, loyverseItemId: string) {
   const session = await auth();
@@ -19,6 +23,15 @@ export async function linkLoyverseVariantAction(ourVariantId: string, loyverseVa
   if (!session?.user) throw new Error("No autenticado");
 
   await linkLoyverseVariant(ourVariantId, loyverseVariantId);
+  revalidatePath("/admin/loyverse/mapear");
+  revalidatePath("/admin/loyverse");
+}
+
+export async function unlinkLoyverseVariantAction(ourVariantId: string) {
+  const session = await auth();
+  if (!session?.user) throw new Error("No autenticado");
+
+  await unlinkLoyverseVariant(ourVariantId);
   revalidatePath("/admin/loyverse/mapear");
   revalidatePath("/admin/loyverse");
 }

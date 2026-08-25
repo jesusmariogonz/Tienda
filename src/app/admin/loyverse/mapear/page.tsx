@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { getLoyverseMappingCandidates } from "@/server/services/loyverse";
+import { getLoyverseMappingCandidates, listLinkedLoyverseProducts } from "@/server/services/loyverse";
 import { loyverseConfigured } from "@/lib/loyverse";
 import { LoyverseMappingClient } from "@/components/loyverse-mapping-client";
+import { LoyverseLinkedList } from "@/components/loyverse-linked-list";
 
 export default async function LoyverseMappingPage() {
   if (!loyverseConfigured()) {
@@ -18,7 +19,10 @@ export default async function LoyverseMappingPage() {
     );
   }
 
-  const { products, loyverseItems } = await getLoyverseMappingCandidates();
+  const [{ products, loyverseItems }, linkedProducts] = await Promise.all([
+    getLoyverseMappingCandidates(),
+    listLinkedLoyverseProducts(),
+  ]);
 
   return (
     <div className="flex max-w-3xl flex-col gap-4">
@@ -38,6 +42,17 @@ export default async function LoyverseMappingPage() {
       </p>
 
       <LoyverseMappingClient products={products} loyverseItems={loyverseItems} />
+
+      <details className="mt-2 rounded-lg border border-zinc-200 p-3">
+        <summary className="cursor-pointer text-sm font-semibold">
+          Ya vinculados ({linkedProducts.reduce((sum, p) => sum + p.variants.length, 0)} variantes)
+        </summary>
+        <p className="mb-2 mt-2 text-xs text-zinc-500">
+          Si vinculaste algo por error, desvincúlalo aquí — vuelve a aparecer
+          arriba para emparejarlo de nuevo.
+        </p>
+        <LoyverseLinkedList products={linkedProducts} />
+      </details>
     </div>
   );
 }

@@ -1,28 +1,63 @@
 import { NextRequest, NextResponse } from "next/server";
 import { applyLoyverseInventoryLevel } from "@/server/services/loyverse";
 
-// Loyverse webhook payload (configured in Back Office → Settings →
-// Integrations → Webhooks, event type "inventory_levels.update", pointed
-// at this URL): { inventory_levels: [{ variant_id, store_id, stock_count }] }.
-// Loyverse doesn't sign webhook payloads the way Stripe does, so there's
-// no signature to verify here — same trust level as the Mercado Pago
-// webhook in this app, which also takes the payload at face value.
+type RawLevel = Record<string, unknown>;
+
+function firstDefined(obj: RawLevel, keys: string[]): unknown {
+  for (const key of keys) {
+    if (obj[key] !== undefined && obj[key] !== null) return obj[key];
+  }
+  return undefined;
+}
+
+// Loyverse doesn't sign webhook payloads the way Stripe does, so there's no
+// signature to verify — same trust level as the Mercado Pago webhook in
+// this app, which also takes the payload at face value.
+//
+// The exact shape/field names below are a best guess (never verified
+// against a real delivery before this store connected Loyverse) — every
+// payload is logged so a real failure can be diagnosed from Vercel's
+// Runtime Logs (Project → Logs) by searching "[webhooks/loyverse] raw".
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
-  const levels: unknown[] = Array.isArray(body?.inventory_levels)
-    ? body.inventory_levels
-    : body?.inventory_level
-      ? [body.inventory_level]
-      : [];
+  console.log("[webhooks/loyverse] raw payload:", JSON.stringify(body));
 
-  for (const level of levels as { variant_id?: string; stock_count?: number }[]) {
-    const variantId = level?.variant_id;
-    const quantity = Number(level?.stock_count);
-    if (!variantId || !Number.isFinite(quantity)) continue;
+  // Loyverse's own inventory events nest the array under a few possible
+  // keys depending on version/event type — accept whichever is present.
+  const container = (body?.inventory_levels ?? body?.data?.inventory_levels ?? body?.data ?? body) as
+    | RawLevel
+    | RawLevel[]
+    | undefined;
+
+  let levels: RawLevel[];
+  if (Array.isArray(container)) {
+    levels = container;
+  } else if (container && typeof container === "object") {
+    levels = [container as RawLevel];
+  } else {
+    levels = [];
+  }
+
+  let applied = 0;
+  for (const level of levels) {
+    if (typeof level !== "object" || level === null) continue;
+    const variantId = firstDefined(level, ["variant_id", "variantId"]);
+    const quantityRaw = firstDefined(level, [
+      "stock_count",
+      "in_stock",
+      "available_stock",
+      "quantity",
+      "count",
+    ]);
+    const quantity = Number(quantityRaw);
+    if (typeof variantId !== "string" || !variantId || !Number.isFinite(quantity)) continue;
+
     await applyLoyverseInventoryLevel(variantId, quantity).catch((err) =>
       console.error("[webhooks/loyverse] failed to apply inventory level:", err),
     );
+    applied++;
   }
 
-  return NextResponse.json({ received: true });
+  console.log(`[webhooks/loyverse] applied ${applied} of ${levels.length} level(s)`);
+  return NextResponse.json({ received: true, applied });
 }

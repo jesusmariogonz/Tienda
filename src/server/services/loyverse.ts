@@ -136,6 +136,54 @@ export async function linkLoyverseVariant(ourVariantId: string, loyverseVariantI
   });
 }
 
+export type LinkedProduct = {
+  productId: string;
+  productName: string;
+  variants: (MappingVariant & { loyverseVariantId: string; loyverseLabel: string })[];
+};
+
+/** Every product with at least one variant already linked to Loyverse —
+ * lets the admin double check or undo a mistaken match, since once linked
+ * a variant disappears from the pending list in getLoyverseMappingCandidates. */
+export async function listLinkedLoyverseProducts(): Promise<LinkedProduct[]> {
+  const [ourVariants, loyverseVariants] = await Promise.all([
+    prisma.productVariant.findMany({
+      where: { active: true, loyverseVariantId: { not: null } },
+      include: { product: true },
+      orderBy: [{ product: { name: "asc" } }],
+    }),
+    listAllLoyverseVariants(),
+  ]);
+  const loyverseById = new Map(loyverseVariants.map((v) => [v.variantId, v]));
+
+  const byProduct = new Map<string, LinkedProduct>();
+  for (const v of ourVariants) {
+    if (!byProduct.has(v.productId)) {
+      byProduct.set(v.productId, { productId: v.productId, productName: v.product.name, variants: [] });
+    }
+    const lv = loyverseById.get(v.loyverseVariantId!);
+    byProduct.get(v.productId)!.variants.push({
+      id: v.id,
+      size: v.size,
+      color: v.color,
+      sku: v.sku,
+      loyverseVariantId: v.loyverseVariantId!,
+      loyverseLabel: lv ? `${lv.itemName}${lv.optionLabel ? ` (${lv.optionLabel})` : ""}` : "(ya no existe en Loyverse)",
+    });
+  }
+
+  return Array.from(byProduct.values());
+}
+
+/** Undoes a link — the variant goes back to unmapped so it can be
+ * re-matched (either auto-suggested again, or picked by hand). */
+export async function unlinkLoyverseVariant(ourVariantId: string) {
+  await prisma.productVariant.update({
+    where: { id: ourVariantId },
+    data: { loyverseVariantId: null },
+  });
+}
+
 /** Applies a stock level Loyverse reports (via webhook) to our own
  * Inventory — Loyverse is the source of truth for in-person sales once
  * it's set up as the physical POS, so this overwrites rather than
