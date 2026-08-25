@@ -8,6 +8,13 @@ type OrderWithItems = Prisma.OrderGetPayload<{
   include: { items: { include: { variant: { include: { product: true } } } } };
 }>;
 
+/** Same customer-facing code shown on the checkout confirmation page —
+ * keep both in sync so the order a customer sees matches what they get
+ * emailed. */
+function orderCode(order: OrderWithItems) {
+  return `#DF-${order.orderSeq.toString().padStart(5, "0")}`;
+}
+
 export async function sendOrderConfirmationEmail(order: OrderWithItems) {
   const itemsHtml = order.items
     .map(
@@ -22,7 +29,7 @@ export async function sendOrderConfirmationEmail(order: OrderWithItems) {
   const html = `
     <div style="font-family:sans-serif;max-width:480px;margin:0 auto">
       <h2>¡Gracias por tu compra!</h2>
-      <p>Orden <strong>${order.orderNumber}</strong></p>
+      <p>Número de Orden: <strong>${orderCode(order)}</strong></p>
       <table style="width:100%;border-collapse:collapse">${itemsHtml}</table>
       ${Number(order.discountAmount) > 0 ? `<p>Descuento: -${formatPrice(Number(order.discountAmount))}</p>` : ""}
       <p style="font-size:18px;font-weight:bold">Total: ${formatPrice(Number(order.total))}</p>
@@ -32,7 +39,7 @@ export async function sendOrderConfirmationEmail(order: OrderWithItems) {
 
   await sendEmail({
     to: order.customerEmail,
-    subject: `Confirmación de tu orden ${order.orderNumber}`,
+    subject: `Confirmación de tu orden ${orderCode(order)}`,
     html,
   });
 
@@ -60,11 +67,11 @@ export async function sendNewOrderAdminAlert(order: OrderWithItems) {
 
   await sendEmail({
     to: adminEmail,
-    subject: `Nueva venta: ${order.orderNumber} — ${formatPrice(Number(order.total))}`,
+    subject: `Nueva venta: ${orderCode(order)} — ${formatPrice(Number(order.total))}`,
     html: `
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto">
         <h2>Nueva venta en línea</h2>
-        <p>Orden <strong>${order.orderNumber}</strong> — cliente: ${order.customerEmail}</p>
+        <p>Orden <strong>${orderCode(order)}</strong> — cliente: ${order.customerEmail}</p>
         <table style="width:100%;border-collapse:collapse">${itemsHtml}</table>
         <p style="font-size:18px;font-weight:bold">Total: ${formatPrice(Number(order.total))}</p>
         <p>Descuenta estas piezas del stock físico si no hay internet para el sync automático con Loyverse.</p>
