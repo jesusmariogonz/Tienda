@@ -230,6 +230,16 @@ export function computeDiscountedLineAmountsCents(order: {
 export async function getOrderById(id: string) {
   return prisma.order.findUnique({
     where: { id },
-    include: { items: { include: { variant: { include: { product: true } } } } },
+    include: {
+      items: {
+        include: {
+          variant: {
+            include: {
+              product: { include: { images: { orderBy: { position: "asc" }, take: 1 } } },
+            },
+          },
+        },
+      },
+    },
   });
 }

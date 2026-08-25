@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { getOrderById } from "@/server/services/orders";
 import { formatPrice } from "@/lib/money";
 import { ClearCartOnMount } from "@/components/clear-cart-on-mount";
@@ -28,16 +29,29 @@ export default async function CheckoutSuccessPage({
 
             <ul className="mt-4 divide-y divide-zinc-100">
               {order.items.map((item) => (
-                <li key={item.id} className="flex items-center justify-between gap-4 py-2">
-                  <div>
-                    <p className="text-zinc-900">{item.variant.product.name}</p>
-                    <p className="text-xs text-zinc-500">
-                      {item.variant.color} / {item.variant.size} · x{item.quantity}
+                <li key={item.id} className="flex items-center gap-3 py-2">
+                  <div className="relative size-14 shrink-0 overflow-hidden rounded-md bg-zinc-100">
+                    {item.variant.product.images[0] ? (
+                      <Image
+                        src={item.variant.product.images[0].url}
+                        alt={item.variant.product.images[0].alt ?? item.variant.product.name}
+                        fill
+                        sizes="56px"
+                        className="object-cover"
+                      />
+                    ) : null}
+                  </div>
+                  <div className="flex flex-1 items-center justify-between gap-4">
+                    <div>
+                      <p className="text-zinc-900">{item.variant.product.name}</p>
+                      <p className="text-xs text-zinc-500">
+                        {item.variant.color} / {item.variant.size} · x{item.quantity}
+                      </p>
+                    </div>
+                    <p className="shrink-0 text-zinc-900">
+                      {formatPrice(Number(item.unitPrice) * item.quantity)}
                     </p>
                   </div>
-                  <p className="shrink-0 text-zinc-900">
-                    {formatPrice(Number(item.unitPrice) * item.quantity)}
-                  </p>
                 </li>
               ))}
             </ul>
