@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@/generated/prisma";
-import { checkLowStockAndAlert, sendOrderConfirmationEmail } from "./notifications";
+import { checkLowStockAndAlert, sendNewOrderAdminAlert, sendOrderConfirmationEmail } from "./notifications";
 import { resolveShippingCost, type ShippingSelection } from "./shipping";
 import { saveSkydropxQuote } from "./shipments";
 import { pushInventoryToLoyverse } from "./loyverse";
@@ -186,6 +186,10 @@ export async function confirmOrderPaid(orderId: string) {
 
   await sendOrderConfirmationEmail(order).catch((err) =>
     console.error("[orders] failed to send confirmation email:", err),
+  );
+
+  await sendNewOrderAdminAlert(order).catch((err) =>
+    console.error("[orders] failed to send admin sale alert:", err),
   );
 
   for (const item of order.items) {
