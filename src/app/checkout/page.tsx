@@ -256,9 +256,9 @@ export default function CheckoutPage() {
   }
 
   return (
-    <main className="flex-1 bg-zinc-50 px-4 py-6 sm:px-6">
-      <div className="mx-auto grid max-w-5xl gap-8 lg:grid-cols-[1fr_380px] lg:items-start">
-        <div className="order-2 lg:order-1">
+    <main className="flex-1 lg:grid lg:grid-cols-[1fr_420px]">
+      <div className="order-2 px-4 py-6 sm:px-6 lg:order-1 lg:px-10 lg:py-10">
+        <div className="mx-auto max-w-xl lg:mx-0 lg:max-w-none">
           <h1 className="mb-6 text-xl font-semibold">Checkout</h1>
 
           {stockNotes.length > 0 && (
@@ -444,12 +444,12 @@ export default function CheckoutPage() {
                 <button
                   type="button"
                   onClick={() => setProvider("stripe")}
-                  className={`flex flex-1 items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm ${
-                    provider === "stripe" ? "border-black ring-1 ring-black" : "border-zinc-300"
+                  className={`flex flex-1 items-center justify-center gap-2 rounded-md bg-[#635BFF] px-3 py-2.5 text-sm font-medium text-white transition-opacity ${
+                    provider === "stripe" ? "ring-2 ring-offset-2 ring-[#635BFF]" : "opacity-70 hover:opacity-100"
                   }`}
                 >
                   <svg viewBox="0 0 32 32" className="h-5 w-5 shrink-0" aria-hidden>
-                    <rect width="32" height="32" rx="6" fill="#635BFF" />
+                    <rect width="32" height="32" rx="6" fill="#fff" fillOpacity="0.15" />
                     <path
                       d="M14.6 13.3c0-.8.7-1.1 1.7-1.1 1.6 0 3.5.5 5.1 1.3V9.1c-1.7-.7-3.4-1-5.1-1-4.2 0-7 2.2-7 5.8 0 5.7 7.8 4.8 7.8 7.2 0 .9-.8 1.2-1.9 1.2-1.7 0-4-.7-5.7-1.6v4.5c1.9.8 3.8 1.1 5.7 1.1 4.3 0 7.3-2.1 7.3-5.8 0-6.2-7.9-5.1-7.9-7.2z"
                       fill="#fff"
@@ -460,17 +460,17 @@ export default function CheckoutPage() {
                 <button
                   type="button"
                   onClick={() => setProvider("mercadopago")}
-                  className={`flex flex-1 items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm ${
+                  className={`flex flex-1 items-center justify-center gap-2 rounded-md bg-[#FFE600] px-3 py-2.5 text-sm font-medium text-[#00263A] transition-opacity ${
                     provider === "mercadopago"
-                      ? "border-black ring-1 ring-black"
-                      : "border-zinc-300"
+                      ? "ring-2 ring-offset-2 ring-[#FFE600]"
+                      : "opacity-70 hover:opacity-100"
                   }`}
                 >
                   <svg viewBox="0 0 32 32" className="h-5 w-5 shrink-0" aria-hidden>
-                    <circle cx="16" cy="16" r="16" fill="#00B1EA" />
+                    <circle cx="16" cy="16" r="16" fill="#00263A" />
                     <path
                       d="M16 8a8 8 0 1 0 8 8 8 8 0 0 0-8-8zm3.4 6.9-4.2 2.7a1 1 0 0 1-1.5-.9v-5.4a1 1 0 0 1 1.5-.9l4.2 2.7a1 1 0 0 1 0 1.8z"
-                      fill="#fff"
+                      fill="#FFE600"
                     />
                   </svg>
                   Mercado Pago
@@ -514,17 +514,16 @@ export default function CheckoutPage() {
             </button>
           </form>
         </div>
+      </div>
 
-        <aside className="order-1 lg:order-2 lg:sticky lg:top-6">
-          <div className="overflow-hidden rounded-xl border border-purple-100 bg-white shadow-sm">
-            <div className="bg-purple-950 px-4 py-3">
-              <h2 className="text-sm font-semibold text-white">
-                Tu pedido · {items.reduce((n, i) => n + i.quantity, 0)} artículo
-                {items.reduce((n, i) => n + i.quantity, 0) === 1 ? "" : "s"}
-              </h2>
-            </div>
+      <aside className="order-1 border-b border-purple-100 bg-purple-50/60 lg:order-2 lg:border-b-0 lg:border-l lg:min-h-screen">
+        <div className="mx-auto max-w-xl px-4 py-6 sm:px-6 lg:sticky lg:top-0 lg:max-w-none lg:px-8 lg:py-10">
+            <h2 className="mb-4 text-sm font-semibold text-purple-950 lg:text-base">
+              Tu pedido · {items.reduce((n, i) => n + i.quantity, 0)} artículo
+              {items.reduce((n, i) => n + i.quantity, 0) === 1 ? "" : "s"}
+            </h2>
 
-            <ul className="flex max-h-72 flex-col gap-3 overflow-y-auto px-4 py-4">
+            <ul className="flex max-h-72 flex-col gap-3 overflow-y-auto lg:max-h-none">
               {items.map((item) => (
                 <li key={item.variantId} className="flex gap-3">
                   <div className="relative h-16 w-14 shrink-0 overflow-hidden rounded-md bg-zinc-100">
@@ -555,7 +554,7 @@ export default function CheckoutPage() {
               ))}
             </ul>
 
-            <div className="border-t border-zinc-100 px-4 py-4">
+            <div className="border-t border-purple-100 py-4">
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -565,13 +564,13 @@ export default function CheckoutPage() {
                     setCouponStatus(null);
                   }}
                   placeholder="Código de descuento"
-                  className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm uppercase"
+                  className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm uppercase"
                 />
                 <button
                   type="button"
                   onClick={applyCoupon}
                   disabled={checkingCoupon || !couponCode.trim()}
-                  className="shrink-0 rounded-md border border-zinc-300 px-3 py-2 text-sm disabled:opacity-50"
+                  className="shrink-0 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm disabled:opacity-50"
                 >
                   {checkingCoupon ? "…" : "Aplicar"}
                 </button>
@@ -586,8 +585,8 @@ export default function CheckoutPage() {
               )}
             </div>
 
-            <div className="flex flex-col gap-1.5 border-t border-zinc-100 px-4 py-4">
-              <div className="flex items-center justify-between text-sm text-zinc-500">
+            <div className="flex flex-col gap-1.5 border-t border-purple-100 py-4">
+              <div className="flex items-center justify-between text-sm text-zinc-600">
                 <span>Subtotal</span>
                 <span>{formatPrice(subtotal)}</span>
               </div>
@@ -598,7 +597,7 @@ export default function CheckoutPage() {
                 </div>
               )}
               <div>
-                <div className="flex items-center justify-between text-sm text-zinc-500">
+                <div className="flex items-center justify-between text-sm text-zinc-600">
                   <span>Envío</span>
                   <span>
                     {shipping === null
@@ -608,11 +607,11 @@ export default function CheckoutPage() {
                         : formatPrice(shipping)}
                   </span>
                 </div>
-                <p className="mt-0.5 text-[11px] text-zinc-400">
+                <p className="mt-0.5 text-[11px] text-zinc-500">
                   El envío se calcula en base a distancia, peso y medidas.
                 </p>
               </div>
-              <div className="mt-1 flex items-center justify-between border-t border-zinc-100 pt-2 text-base font-semibold text-zinc-900">
+              <div className="mt-1 flex items-center justify-between border-t border-purple-100 pt-2 text-base font-semibold text-purple-950">
                 <span>Total</span>
                 <span>{formatPrice(total)}</span>
               </div>
@@ -627,14 +626,13 @@ export default function CheckoutPage() {
               {loading ? "Procesando…" : "Pagar"}
             </button>
 
-            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 border-t border-zinc-100 px-4 py-3 text-xs text-zinc-500">
+            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 border-t border-purple-100 pt-3 text-xs text-zinc-500">
               <span>🔒 Pago seguro</span>
               <span>📦 Envío rastreado</span>
               <span>↩️ Cambios sin complicaciones</span>
             </div>
-          </div>
-        </aside>
-      </div>
+        </div>
+      </aside>
     </main>
   );
 }
