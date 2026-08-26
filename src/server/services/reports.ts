@@ -24,8 +24,11 @@ export type ChannelSummary = {
 };
 
 /** Combined sales (online + counter) grouped by day/week/month. Online
- * revenue only counts PAID orders; POS sales are record-only and always
- * count once created. */
+ * revenue only counts PAID orders that actually went through a real
+ * provider — the "Compra de prueba" demo checkout marks orders PAID
+ * without ever calling attachPaymentIntent, so paymentProvider stays
+ * NULL for those and they're excluded here; POS sales are record-only
+ * and always count once created. */
 export async function getSalesByPeriod(
   from: Date,
   to: Date,
@@ -36,7 +39,7 @@ export async function getSalesByPeriod(
   >`
     SELECT date_trunc(${granularity}, "createdAt") AS period, 'online' AS channel, SUM(total)::float AS total
     FROM "Order"
-    WHERE status = 'PAID' AND "createdAt" BETWEEN ${from} AND ${to}
+    WHERE status = 'PAID' AND "paymentProvider" IS NOT NULL AND "createdAt" BETWEEN ${from} AND ${to}
     GROUP BY 1
     UNION ALL
     SELECT date_trunc(${granularity}, "createdAt") AS period, 'pos' AS channel, SUM(total)::float AS total
@@ -68,7 +71,7 @@ export async function getTopProducts(from: Date, to: Date, limit = 10): Promise<
       SELECT oi."variantId", oi.quantity, oi."unitPrice"
       FROM "OrderItem" oi
       JOIN "Order" o ON o.id = oi."orderId"
-      WHERE o.status = 'PAID' AND o."createdAt" BETWEEN ${from} AND ${to}
+      WHERE o.status = 'PAID' AND o."paymentProvider" IS NOT NULL AND o."createdAt" BETWEEN ${from} AND ${to}
       UNION ALL
       SELECT psi."variantId", psi.quantity, psi."unitPrice"
       FROM "PosSaleItem" psi
@@ -128,7 +131,7 @@ export async function getSalesByCategory(from: Date, to: Date): Promise<Category
       SELECT oi."variantId", oi.quantity, oi."unitPrice"
       FROM "OrderItem" oi
       JOIN "Order" o ON o.id = oi."orderId"
-      WHERE o.status = 'PAID' AND o."createdAt" BETWEEN ${from} AND ${to}
+      WHERE o.status = 'PAID' AND o."paymentProvider" IS NOT NULL AND o."createdAt" BETWEEN ${from} AND ${to}
       UNION ALL
       SELECT psi."variantId", psi.quantity, psi."unitPrice"
       FROM "PosSaleItem" psi
@@ -147,7 +150,7 @@ export async function getSalesByCategory(from: Date, to: Date): Promise<Category
 export async function getChannelSummary(from: Date, to: Date): Promise<ChannelSummary> {
   const [onlineAgg, posAgg] = await Promise.all([
     prisma.order.aggregate({
-      where: { status: "PAID", createdAt: { gte: from, lte: to } },
+      where: { status: "PAID", paymentProvider: { not: null }, createdAt: { gte: from, lte: to } },
       _sum: { total: true },
       _count: true,
     }),

@@ -29,7 +29,10 @@ export async function getDashboardStats() {
     prisma.productVariant.count({ where: { active: true } }),
     prisma.inventory.count({ where: { quantity: 0 } }),
     prisma.order.aggregate({
-      where: { status: "PAID", createdAt: { gte: todayStart } },
+      // paymentProvider stays NULL for "Compra de prueba" demo orders
+      // (they never go through Stripe/Mercado Pago) — excluded so test
+      // checkouts don't inflate real revenue.
+      where: { status: "PAID", paymentProvider: { not: null }, createdAt: { gte: todayStart } },
       _sum: { total: true },
       _count: true,
     }),
@@ -39,7 +42,7 @@ export async function getDashboardStats() {
       _count: true,
     }),
     prisma.order.aggregate({
-      where: { status: "PAID", createdAt: { gte: weekStart } },
+      where: { status: "PAID", paymentProvider: { not: null }, createdAt: { gte: weekStart } },
       _sum: { total: true },
     }),
     prisma.posSale.aggregate({

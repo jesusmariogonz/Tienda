@@ -8,6 +8,7 @@ import {
   getSalesByCategory,
   type Granularity,
 } from "@/server/services/reports";
+import { deleteDemoOrdersAction } from "./actions";
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
   CASH: "Efectivo",
@@ -106,8 +107,23 @@ export default async function ReportsPage({
           >
             Carritos abandonados
           </Link>
+          <form action={deleteDemoOrdersAction}>
+            <button
+              type="submit"
+              title="Borra toda 'Compra de prueba' (sin cobro real) y le regresa el stock que descontaron"
+              className="rounded-full border border-amber-300 px-4 py-2 text-sm font-medium text-amber-800"
+            >
+              Borrar compras de prueba
+            </button>
+          </form>
         </div>
       </div>
+      <p className="-mt-4 text-xs text-zinc-400">
+        Los ingresos de esta página ya excluyen las compras hechas con el
+        botón &quot;Compra de prueba&quot; (nunca pasan por Stripe/Mercado
+        Pago real) — usa el botón de arriba para borrarlas por completo y
+        recuperar el stock que descontaron.
+      </p>
 
       <form
         action="/admin/reportes"

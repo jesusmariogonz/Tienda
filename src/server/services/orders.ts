@@ -203,6 +203,40 @@ export async function confirmOrderPaid(orderId: string) {
   );
 }
 
+/** Removes every "Compra de prueba" demo order (paymentProvider stays NULL
+ * for those — see confirmOrderPaid/demo checkout route) and gives back any
+ * stock they decremented, since no garment actually left the building for
+ * them. Also unblocks hard-deleting a product/variant that could only be
+ * deactivated because a demo order's OrderItem was still referencing it. */
+export async function deleteDemoOrders() {
+  const demoOrders = await prisma.order.findMany({
+    where: { paymentProvider: null },
+    include: { items: true },
+  });
+
+  for (const order of demoOrders) {
+    if (order.status === "PAID") {
+      for (const item of order.items) {
+        await prisma.inventory.update({
+          where: { variantId: item.variantId },
+          data: { quantity: { increment: item.quantity } },
+        });
+        await prisma.inventoryMovement.create({
+          data: {
+            variantId: item.variantId,
+            type: "ADJUSTMENT",
+            quantity: item.quantity,
+            note: `Reverso: orden de prueba ${order.orderNumber} eliminada`,
+          },
+        });
+      }
+    }
+  }
+
+  const { count } = await prisma.order.deleteMany({ where: { paymentProvider: null } });
+  return count;
+}
+
 /** Per-line amounts (in cents) that sum exactly to order.total, scaling
  * each item proportionally by the coupon discount so payment providers —
  * which bill per line item, not a single total — charge the right amount
