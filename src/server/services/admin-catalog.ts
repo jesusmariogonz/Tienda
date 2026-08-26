@@ -211,8 +211,28 @@ export async function updateProduct(id: string, input: ProductInput) {
   }
 }
 
-export async function deleteProduct(id: string) {
-  await prisma.product.delete({ where: { id } });
+/** Hard-deletes a product, except when one of its variants is referenced by
+ * a past order or POS sale — the DB blocks that delete to keep sales
+ * history intact (OrderItem/PosSaleItem→variant has no cascade), and would
+ * otherwise crash the admin page with an unhandled FK error. In that case
+ * we deactivate the product and its variants instead: it disappears from
+ * the storefront and inventory the same as a delete would, but the old
+ * orders/reports still resolve correctly. */
+export async function deleteProduct(id: string): Promise<{ deactivatedOnly: boolean }> {
+  try {
+    await prisma.product.delete({ where: { id } });
+    return { deactivatedOnly: false };
+  } catch (err) {
+    const isFkViolation =
+      typeof err === "object" && err !== null && "code" in err && err.code === "P2003";
+    if (!isFkViolation) throw err;
+
+    await prisma.$transaction([
+      prisma.product.update({ where: { id }, data: { active: false } }),
+      prisma.productVariant.updateMany({ where: { productId: id }, data: { active: false } }),
+    ]);
+    return { deactivatedOnly: true };
+  }
 }
 
 async function uniqueSlug(name: string) {

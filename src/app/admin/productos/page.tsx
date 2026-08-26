@@ -2,11 +2,23 @@ import Link from "next/link";
 import { listProductsForAdmin } from "@/server/services/admin-catalog";
 import { formatPrice } from "@/lib/money";
 
-export default async function AdminProductsPage() {
+export default async function AdminProductsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ deactivated?: string }>;
+}) {
+  const { deactivated } = await searchParams;
   const products = await listProductsForAdmin();
 
   return (
     <div className="flex flex-col gap-6">
+      {deactivated && (
+        <p className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          Ese producto ya tiene ventas registradas, así que no se puede
+          borrar por completo sin afectar ese historial — lo desactivamos en
+          su lugar: ya no se muestra en la tienda ni en el inventario.
+        </p>
+      )}
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Productos</h1>
         <Link

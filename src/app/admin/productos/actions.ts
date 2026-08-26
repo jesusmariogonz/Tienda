@@ -81,7 +81,8 @@ export async function deleteProductAction(id: string) {
   const session = await auth();
   if (!session?.user) redirect("/admin/login");
 
-  await deleteProduct(id);
+  const result = await deleteProduct(id);
   revalidatePath("/admin/productos");
-  redirect("/admin/productos");
+  revalidatePath("/admin/inventario");
+  redirect(result.deactivatedOnly ? "/admin/productos?deactivated=1" : "/admin/productos");
 }

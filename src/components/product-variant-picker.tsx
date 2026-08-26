@@ -142,7 +142,9 @@ export function ProductVariantPicker({
       </div>
 
       <div>
-        <p className="mb-2 text-sm font-medium text-zinc-700">Color</p>
+        <p className="mb-2 text-sm font-medium text-zinc-700">
+          Color{color ? <span className="font-normal text-zinc-500"> · {color}</span> : null}
+        </p>
         <div className="flex flex-wrap gap-3">
           {colors.map((c) => (
             <button
