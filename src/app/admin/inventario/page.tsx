@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { listInventory } from "@/server/services/inventory";
 import { resolveColorHex } from "@/lib/color-names";
 import { adjustInventoryAction } from "./actions";
@@ -150,6 +151,8 @@ export default async function AdminInventoryPage({
                     0,
                   );
 
+                  const productId = productVariants[0]?.productId;
+
                   return (
                     <details key={productName} open={filtering} className="group">
                       <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-2.5 text-sm">
@@ -159,11 +162,21 @@ export default async function AdminInventoryPage({
                             ({productVariants.length} variantes · {productUnits} unidades)
                           </span>
                         </span>
-                        {productLow > 0 && (
-                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-700">
-                            {productLow} bajo
-                          </span>
-                        )}
+                        <span className="flex items-center gap-3">
+                          {productLow > 0 && (
+                            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-700">
+                              {productLow} bajo
+                            </span>
+                          )}
+                          {productId && (
+                            <Link
+                              href={`/admin/productos/${productId}`}
+                              className="text-xs text-zinc-500 underline hover:text-zinc-900"
+                            >
+                              Editar / Eliminar
+                            </Link>
+                          )}
+                        </span>
                       </summary>
 
                       <div className="overflow-x-auto">

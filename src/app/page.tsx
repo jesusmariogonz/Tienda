@@ -31,12 +31,12 @@ export default async function Home({
     <div className="flex flex-col">
       <section className="flex flex-col items-start justify-center gap-4 bg-black px-4 py-16 sm:px-6 sm:py-24">
         <h1 className="max-w-2xl text-4xl leading-[0.95] font-extrabold tracking-tighter text-white uppercase italic sm:text-6xl">
-          Entrena duro,
+          Mismo estilo,
           <br />
-          viste más duro
+          diferente precio
         </h1>
         <p className="max-w-md text-sm text-zinc-400 sm:text-base">
-          Ropa deportiva y streetwear hecha para moverse contigo.
+          Dupes de ropa deportiva y streetwear, hechos para moverse contigo.
         </p>
         <Link
           href="#catalogo"
