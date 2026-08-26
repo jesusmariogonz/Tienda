@@ -21,6 +21,7 @@ function normalize(text: string) {
 export async function listActiveProducts(filters: CatalogFilters = {}) {
   const where: Prisma.ProductWhereInput = {
     active: true,
+    variants: { some: { active: true } },
     ...(filters.category ? { category: { slug: filters.category } } : {}),
   };
 

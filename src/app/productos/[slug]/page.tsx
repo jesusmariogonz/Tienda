@@ -11,7 +11,7 @@ export default async function ProductPage({
   const { slug } = await params;
   const product = await getProductBySlug(slug);
 
-  if (!product || !product.active) notFound();
+  if (!product || !product.active || product.variants.length === 0) notFound();
 
   const images = product.images;
   const basePrice = Number(product.basePrice);

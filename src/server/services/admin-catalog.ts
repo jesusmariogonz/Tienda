@@ -223,9 +223,13 @@ export async function deleteProduct(id: string): Promise<{ deactivatedOnly: bool
     await prisma.product.delete({ where: { id } });
     return { deactivatedOnly: false };
   } catch (err) {
-    const isFkViolation =
-      typeof err === "object" && err !== null && "code" in err && err.code === "P2003";
-    if (!isFkViolation) throw err;
+    // Whatever the exact reason the hard delete failed (blocked by
+    // OrderItem/PosSaleItem referencing a variant is the expected case,
+    // but this is deliberately not narrowed to that one error code) —
+    // deactivating is always a safe fallback, so prefer it over crashing
+    // the admin page. Logged so a genuinely new failure mode is still
+    // visible in Vercel's Runtime Logs.
+    console.error("[admin-catalog] hard delete failed, deactivating instead:", err);
 
     await prisma.$transaction([
       prisma.product.update({ where: { id }, data: { active: false } }),
