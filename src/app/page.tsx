@@ -59,6 +59,9 @@ export default async function Home({
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4">
             {products.map((product, i) => {
               const price = Number(product.basePrice);
+              const soldOut = product.variants.every(
+                (v) => (v.inventory?.quantity ?? 0) <= 0,
+              );
               return (
                 <Link
                   key={product.id}
@@ -72,6 +75,7 @@ export default async function Home({
                     peek={i === 0}
                     className="aspect-[2/3] w-full bg-zinc-100"
                     sizes="(max-width: 640px) 50vw, 25vw"
+                    soldOut={soldOut}
                   />
                   <div className="mt-2.5 space-y-0.5">
                     {product.category && (

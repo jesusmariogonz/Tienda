@@ -17,6 +17,9 @@ type ProductCarouselProps = {
   sizes?: string;
   className?: string;
   priority?: boolean;
+  /** Every variant is out of stock — darkens the image and stamps
+   * "AGOTADO" so shoppers see it's unavailable before opening the product. */
+  soldOut?: boolean;
 };
 
 export function ProductCarousel({
@@ -28,6 +31,7 @@ export function ProductCarousel({
   sizes = "(max-width: 640px) 50vw, 25vw",
   className,
   priority,
+  soldOut = false,
 }: ProductCarouselProps) {
   const [index, setIndex] = useState(0);
   const [hovering, setHovering] = useState(false);
@@ -172,6 +176,14 @@ export function ProductCarousel({
             ))}
           </div>
         </>
+      )}
+
+      {soldOut && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+          <span className="rounded-full border border-white/70 px-4 py-1.5 text-xs font-bold tracking-widest text-white uppercase">
+            Agotado
+          </span>
+        </div>
       )}
     </div>
   );

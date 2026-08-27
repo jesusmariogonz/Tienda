@@ -25,6 +25,7 @@ export default async function ProductPage({
     price: v.price ? Number(v.price) : basePrice,
     stock: v.inventory?.quantity ?? 0,
   }));
+  const soldOut = variants.every((v) => v.stock <= 0);
 
   return (
     <main className="flex-1 px-4 py-6 sm:px-6">
@@ -36,6 +37,7 @@ export default async function ProductPage({
           priority
           className="aspect-[2/3] w-full rounded-lg bg-zinc-100"
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 60vw"
+          soldOut={soldOut}
         />
 
         <div className="flex flex-col gap-4 lg:pt-4">
