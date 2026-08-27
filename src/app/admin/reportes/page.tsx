@@ -118,7 +118,7 @@ export default async function ReportsPage({
           </form>
         </div>
       </div>
-      <p className="-mt-4 text-xs text-zinc-400">
+      <p className="text-xs text-zinc-400">
         Los ingresos de esta página ya excluyen las compras hechas con el
         botón &quot;Compra de prueba&quot; (nunca pasan por Stripe/Mercado
         Pago real) — usa el botón de arriba para borrarlas por completo y
