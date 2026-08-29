@@ -147,7 +147,15 @@ export async function confirmOrderPaid(orderId: string) {
   const order = await prisma.$transaction(async (tx) => {
     const order = await tx.order.findUnique({
       where: { id: orderId },
-      include: { items: { include: { variant: { include: { product: true } } } } },
+      include: {
+        items: {
+          include: {
+            variant: {
+              include: { product: { include: { images: { orderBy: { position: "asc" }, take: 1 } } } },
+            },
+          },
+        },
+      },
     });
     if (!order || order.status !== "PENDING") return null;
 
