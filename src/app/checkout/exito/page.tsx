@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { getOrderById } from "@/server/services/orders";
 import { formatPrice } from "@/lib/money";
+import { STORE_PICKUP_ADDRESS } from "@/lib/config";
 import { ClearCartOnMount } from "@/components/clear-cart-on-mount";
 
 export default async function CheckoutSuccessPage({
@@ -97,7 +98,12 @@ export default async function CheckoutSuccessPage({
             </div>
           </div>
 
-          {order.shippingAddress ? (
+          {order.pickupInStore ? (
+            <div className="mt-4 rounded-lg border border-zinc-200 p-4 lg:p-8">
+              <p className="font-medium text-zinc-900 lg:text-lg">Recoger en tienda</p>
+              <p className="mt-1 text-zinc-600">{STORE_PICKUP_ADDRESS}</p>
+            </div>
+          ) : order.shippingAddress ? (
             <div className="mt-4 rounded-lg border border-zinc-200 p-4 lg:p-8">
               <p className="font-medium text-zinc-900 lg:text-lg">Enviar a</p>
               <p className="mt-1 whitespace-pre-line text-zinc-600">

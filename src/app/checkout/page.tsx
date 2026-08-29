@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCart, cartTotal, cartWeightKg } from "@/store/cart";
 import { formatPrice } from "@/lib/money";
 import { useCartStockSync } from "@/hooks/use-cart-stock-sync";
+import { STORE_PICKUP_ADDRESS } from "@/lib/config";
 
 type Provider = "stripe" | "mercadopago" | "demo";
 
@@ -42,6 +43,9 @@ export default function CheckoutPage() {
   const subtotal = cartTotal(items);
   const weightKg = cartWeightKg(items);
   const stockNotes = useCartStockSync();
+
+  const [fulfillment, setFulfillment] = useState<"shipping" | "pickup">("shipping");
+  const pickup = fulfillment === "pickup";
 
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
@@ -170,7 +174,7 @@ export default function CheckoutPage() {
   const [checkingCoupon, setCheckingCoupon] = useState(false);
 
   const discount = couponStatus && "discount" in couponStatus ? couponStatus.discount : 0;
-  const total = Math.max(0, subtotal - discount) + (shipping ?? 0);
+  const total = Math.max(0, subtotal - discount) + (pickup ? 0 : (shipping ?? 0));
 
   if (items.length === 0) {
     return (
@@ -234,14 +238,15 @@ export default function CheckoutPage() {
             email,
             name,
             phone,
-            address: { street, city, state, zip, colonia, references },
+            address: pickup ? undefined : { street, city, state, zip, colonia, references },
           },
           couponCode:
             couponStatus && "discount" in couponStatus ? couponStatus.code : undefined,
           shipping:
-            shippingQuotationId && selectedRateId
+            !pickup && shippingQuotationId && selectedRateId
               ? { quotationId: shippingQuotationId, rateId: selectedRateId }
               : undefined,
+          pickup,
         }),
       });
       const data = await res.json().catch(() => null);
@@ -270,6 +275,35 @@ export default function CheckoutPage() {
           )}
 
           <form id="checkout-form" onSubmit={handleSubmit} className="flex flex-col gap-6">
+            <section className="rounded-xl border border-zinc-200 bg-white p-4 sm:p-5">
+              <h2 className="mb-3 text-sm font-semibold text-zinc-900">Método de entrega</h2>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFulfillment("shipping")}
+                  className={`flex-1 rounded-md border px-3 py-2.5 text-sm font-medium ${
+                    fulfillment === "shipping" ? "border-black ring-1 ring-black" : "border-zinc-300"
+                  }`}
+                >
+                  Envío a domicilio
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFulfillment("pickup")}
+                  className={`flex-1 rounded-md border px-3 py-2.5 text-sm font-medium ${
+                    fulfillment === "pickup" ? "border-black ring-1 ring-black" : "border-zinc-300"
+                  }`}
+                >
+                  Recoger en tienda
+                </button>
+              </div>
+              {pickup && (
+                <p className="mt-3 rounded-md bg-zinc-50 px-3 py-2 text-xs text-zinc-600">
+                  {STORE_PICKUP_ADDRESS}
+                </p>
+              )}
+            </section>
+
             <section className="rounded-xl border border-zinc-200 bg-white p-4 sm:p-5">
               <h2 className="mb-3 text-sm font-semibold text-zinc-900">Contacto</h2>
               <div className="flex flex-col gap-3">
@@ -307,6 +341,7 @@ export default function CheckoutPage() {
               </div>
             </section>
 
+            {!pickup && (
             <section className="rounded-xl border border-zinc-200 bg-white p-4 sm:p-5">
               <h2 className="mb-1 text-sm font-semibold text-zinc-900">Dirección de envío</h2>
               <p className="mb-3 text-xs text-amber-700">
@@ -409,8 +444,9 @@ export default function CheckoutPage() {
                 </label>
               </div>
             </section>
+            )}
 
-            {shippingRates && shippingRates.length > 0 && (
+            {!pickup && shippingRates && shippingRates.length > 0 && (
               <section className="rounded-xl border border-zinc-200 bg-white p-4 sm:p-5">
                 <h2 className="mb-3 text-sm font-semibold text-zinc-900">Paquetería</h2>
                 <div className="flex flex-col gap-2">
@@ -602,17 +638,21 @@ export default function CheckoutPage() {
               )}
               <div>
                 <div className="flex items-center justify-between text-sm text-zinc-600">
-                  <span>Envío</span>
+                  <span>{pickup ? "Recoger en tienda" : "Envío"}</span>
                   <span>
-                    {shipping === null
-                      ? "Calculando…"
-                      : shipping === 0
-                        ? "Gratis"
-                        : formatPrice(shipping)}
+                    {pickup
+                      ? "Gratis"
+                      : shipping === null
+                        ? "Calculando…"
+                        : shipping === 0
+                          ? "Gratis"
+                          : formatPrice(shipping)}
                   </span>
                 </div>
                 <p className="mt-0.5 text-[11px] text-zinc-500">
-                  El envío se calcula en base a distancia, peso y medidas.
+                  {pickup
+                    ? "Te avisamos cuando esté listo para recoger en tienda."
+                    : "El envío se calcula en base a distancia, peso y medidas."}
                 </p>
               </div>
               <div className="mt-1 flex items-center justify-between border-t border-purple-100 pt-2 text-base font-semibold text-purple-950">

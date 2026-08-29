@@ -1,0 +1,1 @@
+ALTER TABLE "Order" ADD COLUMN "pickupInStore" BOOLEAN NOT NULL DEFAULT false;

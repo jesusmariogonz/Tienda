@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/email";
 import { formatPrice } from "@/lib/money";
-import { appUrl } from "@/lib/config";
+import { appUrl, STORE_PICKUP_ADDRESS } from "@/lib/config";
 import type { Prisma } from "@/generated/prisma";
 
 type OrderWithItems = Prisma.OrderGetPayload<{
@@ -62,12 +62,14 @@ export async function sendOrderConfirmationEmail(order: OrderWithItems) {
     })
     .join("");
 
-  const addressLines = [
-    order.customerName ?? "",
-    address.street ?? "",
-    [address.colonia, address.city, address.state, address.zip].filter(Boolean).join(", "),
-    address.references ?? "",
-  ].filter(Boolean);
+  const addressLines = order.pickupInStore
+    ? []
+    : [
+        order.customerName ?? "",
+        address.street ?? "",
+        [address.colonia, address.city, address.state, address.zip].filter(Boolean).join(", "),
+        address.references ?? "",
+      ].filter(Boolean);
 
   const html = `<!DOCTYPE html>
 <html lang="es">
@@ -187,12 +189,17 @@ export async function sendOrderConfirmationEmail(order: OrderWithItems) {
       </div>
 
       ${
-        addressLines.length > 0
-          ? `<div class="section-title">Dirección de entrega</div>
+        order.pickupInStore
+          ? `<div class="section-title">Recoger en tienda</div>
+      <div class="address-block">
+        <p>${escapeHtml(STORE_PICKUP_ADDRESS)}</p>
+      </div>`
+          : addressLines.length > 0
+            ? `<div class="section-title">Dirección de entrega</div>
       <div class="address-block">
         <p>${addressLines.map(escapeHtml).join("<br />")}</p>
       </div>`
-          : ""
+            : ""
       }
 
       <div class="btn-wrap">

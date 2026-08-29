@@ -51,6 +51,7 @@ export async function createPendingOrder(
   customer: CheckoutCustomer,
   couponCode?: string,
   shippingSelection?: ShippingSelection,
+  pickupInStore = false,
 ) {
   if (items.length === 0) throw new Error("El carrito está vacío");
 
@@ -100,7 +101,9 @@ export async function createPendingOrder(
     couponId = coupon.id;
   }
 
-  const shipping = await resolveShippingCost(shippingSelection, subtotal);
+  const shipping = pickupInStore
+    ? { cost: 0, quotationId: null, rates: null }
+    : await resolveShippingCost(shippingSelection, subtotal);
 
   const order = await prisma.order.create({
     data: {
@@ -109,7 +112,8 @@ export async function createPendingOrder(
       customerEmail: customer.email,
       customerName: customer.name,
       customerPhone: customer.phone,
-      shippingAddress: customer.address,
+      shippingAddress: pickupInStore ? undefined : customer.address,
+      pickupInStore,
       subtotal,
       discountAmount,
       shippingCost: shipping.cost,

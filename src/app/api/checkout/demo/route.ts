@@ -21,14 +21,16 @@ const bodySchema = z.object({
     email: z.string().email(),
     name: z.string().optional(),
     phone: z.string().optional(),
-    address: z.object({
-      street: z.string().min(1, "Falta la calle"),
-      city: z.string().min(1, "Falta la ciudad"),
-      state: z.string().min(1, "Falta el estado"),
-      zip: z.string().min(1, "Falta el código postal"),
-      colonia: z.string().optional(),
-      references: z.string().optional(),
-    }),
+    address: z
+      .object({
+        street: z.string().min(1, "Falta la calle"),
+        city: z.string().min(1, "Falta la ciudad"),
+        state: z.string().min(1, "Falta el estado"),
+        zip: z.string().min(1, "Falta el código postal"),
+        colonia: z.string().optional(),
+        references: z.string().optional(),
+      })
+      .optional(),
   }),
   couponCode: z.string().optional(),
   shipping: z
@@ -37,6 +39,7 @@ const bodySchema = z.object({
       rateId: z.string(),
     })
     .optional(),
+  pickup: z.boolean().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -48,10 +51,13 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
   }
-  const { items, customer, couponCode, shipping } = parsed.data;
+  const { items, customer, couponCode, shipping, pickup } = parsed.data;
+  if (!pickup && !customer.address) {
+    return NextResponse.json({ error: "Falta la dirección de envío" }, { status: 400 });
+  }
 
   try {
-    const order = await createPendingOrder(items, customer, couponCode, shipping);
+    const order = await createPendingOrder(items, customer, couponCode, shipping, pickup);
     await confirmOrderPaid(order.id);
 
     return NextResponse.json({ url: `${appUrl}/checkout/exito?order=${order.id}` });
