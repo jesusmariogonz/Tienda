@@ -27,6 +27,8 @@ export type ProductFormValues = {
   wholesaleEnabled?: boolean;
   wholesaleMinQty?: number | null;
   wholesaleDiscountPercent?: number | null;
+  discountEnabled?: boolean;
+  discountPercent?: number | null;
 };
 
 export function AdminProductForm({
@@ -198,6 +200,29 @@ export function AdminProductForm({
               className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
             />
           </div>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-3 rounded-md border border-sky-200 bg-sky-50 p-3">
+        <label className="flex items-center gap-2 text-sm font-medium">
+          <input
+            type="checkbox"
+            name="discountEnabled"
+            defaultChecked={initialValues?.discountEnabled ?? false}
+          />
+          En descuento (aparece tachado en la tienda y en la pestaña "Descuentos")
+        </label>
+        <div>
+          <label className="mb-1 block text-xs text-zinc-500">Descuento (%)</label>
+          <input
+            type="number"
+            min="1"
+            max="90"
+            step="0.1"
+            name="discountPercent"
+            defaultValue={initialValues?.discountPercent ?? 10}
+            className="w-full max-w-[140px] rounded-md border border-zinc-300 px-3 py-2 text-sm"
+          />
         </div>
       </div>
 

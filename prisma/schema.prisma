@@ -68,6 +68,14 @@ model Product {
   wholesaleMinQty          Int?
   wholesaleDiscountPercent Decimal? @db.Decimal(5, 2)
 
+  // Weekly "3 prendas en descuento" promo — a simple on/off checkbox per
+  // product rather than a date range, since the owner turns it on/off by
+  // hand each Monday. Shown storefront-wide as a struck-through original
+  // price next to the discounted one, and auto-collected under the
+  // "Descuentos" category page.
+  discountEnabled Boolean  @default(false)
+  discountPercent Decimal? @db.Decimal(5, 2)
+
   // Shown only on desktop when hovering the product card in the catalog
   // grid — never part of the regular image carousel.
   hoverImageUrl String?

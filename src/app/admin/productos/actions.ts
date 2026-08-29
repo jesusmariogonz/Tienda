@@ -36,6 +36,9 @@ function parseInput(formData: FormData): ProductInput {
   const wholesaleMinQtyRaw = formData.get("wholesaleMinQty") as string;
   const wholesaleDiscountRaw = formData.get("wholesaleDiscountPercent") as string;
 
+  const discountEnabled = formData.get("discountEnabled") === "on";
+  const discountPercentRaw = formData.get("discountPercent") as string;
+
   const weightKgRaw = formData.get("weightKg") as string;
 
   return {
@@ -53,6 +56,8 @@ function parseInput(formData: FormData): ProductInput {
       wholesaleEnabled && wholesaleMinQtyRaw ? Number(wholesaleMinQtyRaw) : null,
     wholesaleDiscountPercent:
       wholesaleEnabled && wholesaleDiscountRaw ? Number(wholesaleDiscountRaw) : null,
+    discountEnabled,
+    discountPercent: discountEnabled && discountPercentRaw ? Number(discountPercentRaw) : null,
   };
 }
 

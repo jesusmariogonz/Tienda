@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { listActiveProducts } from "@/server/services/catalog";
-import { formatPrice } from "@/lib/money";
 import { appName } from "@/lib/config";
 import { CatalogFilters } from "@/components/catalog-filters";
-import { ProductCarousel } from "@/components/product-carousel";
+import { ProductCard } from "@/components/product-card";
 
 // Render on every request rather than at build time: the catalog changes
 // from the admin panel, and build-time prerendering would also make the
@@ -57,40 +56,9 @@ export default async function Home({
           </p>
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4">
-            {products.map((product, i) => {
-              const price = Number(product.basePrice);
-              const soldOut = product.variants.every(
-                (v) => (v.inventory?.quantity ?? 0) <= 0,
-              );
-              return (
-                <Link
-                  key={product.id}
-                  href={`/productos/${product.slug}`}
-                  className="group flex flex-col"
-                >
-                  <ProductCarousel
-                    images={product.images}
-                    alt={product.name}
-                    hoverImageUrl={product.hoverImageUrl}
-                    peek={i === 0}
-                    className="aspect-[2/3] w-full bg-zinc-100"
-                    sizes="(max-width: 640px) 50vw, 25vw"
-                    soldOut={soldOut}
-                  />
-                  <div className="mt-2.5 space-y-0.5">
-                    {product.category && (
-                      <p className="text-[10px] font-semibold tracking-widest text-zinc-400 uppercase">
-                        {product.category.name}
-                      </p>
-                    )}
-                    <p className="text-sm font-bold tracking-tight uppercase">
-                      {product.name}
-                    </p>
-                    <p className="text-sm text-zinc-500">{formatPrice(price)}</p>
-                  </div>
-                </Link>
-              );
-            })}
+            {products.map((product, i) => (
+              <ProductCard key={product.id} product={product} peek={i === 0} />
+            ))}
           </div>
         )}
       </main>

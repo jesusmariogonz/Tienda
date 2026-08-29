@@ -70,6 +70,26 @@ export function listWholesaleProducts() {
   });
 }
 
+/** Weekly discount picks — plain on/off checkbox per product (see
+ * Product.discountEnabled), no date range: the owner turns it on Monday and
+ * off whenever the promo ends. */
+export function listDiscountedProducts() {
+  return prisma.product.findMany({
+    where: {
+      active: true,
+      discountEnabled: true,
+      discountPercent: { not: null },
+      variants: { some: { active: true } },
+    },
+    include: {
+      images: { orderBy: { position: "asc" }, take: 5 },
+      category: true,
+      variants: { where: { active: true }, include: { inventory: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
 export function listCategoriesWithProducts() {
   return prisma.category.findMany({
     where: { products: { some: { active: true } } },

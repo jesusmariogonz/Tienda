@@ -93,6 +93,72 @@ export async function pushLoyverseInventory(updates: LoyverseInventoryLevel[]) {
   });
 }
 
+export type LoyversePaymentType = { id: string; name: string };
+
+/** Payment types are managed by the merchant in Loyverse's Back Office
+ * (Settings → Payment types) — there's no API to create one, so the admin
+ * creates e.g. "Venta en línea" by hand and this just looks it up by name
+ * so an online sale can be tagged with it. */
+export async function listLoyversePaymentTypes(): Promise<LoyversePaymentType[]> {
+  if (!isConfigured()) return [];
+  const data = await loyverseFetch("/payment_types");
+  return (data.payment_types ?? []).map((p: { id: string; name: string }) => ({
+    id: p.id,
+    name: p.name,
+  }));
+}
+
+export type LoyverseEmployee = { id: string; name: string };
+
+export async function listLoyverseEmployees(): Promise<LoyverseEmployee[]> {
+  if (!isConfigured()) return [];
+  const data = await loyverseFetch("/employees");
+  return (data.employees ?? []).map((e: { id: string; name: string }) => ({
+    id: e.id,
+    name: e.name,
+  }));
+}
+
+export type LoyverseReceiptLine = { variantId: string; quantity: number; price: number };
+
+/** Records a real sale receipt in Loyverse (POST /receipts) instead of just
+ * silently adjusting stock — so an online order shows up in Loyverse's own
+ * sales reports (with its own payment type, e.g. "Venta en línea") instead
+ * of looking like the item just vanished from inventory. Loyverse decrements
+ * its own stock for the sale automatically, so callers should NOT also call
+ * pushLoyverseInventory for these same lines.
+ *
+ * Field names here are a best guess from Loyverse's public API docs (this
+ * sandbox can't reach developer.loyverse.com to verify live) — logged
+ * end-to-end like the webhook route so a mismatch can be diagnosed from
+ * Vercel's Runtime Logs if the first real sale doesn't show up. */
+export async function createLoyverseSaleReceipt(params: {
+  storeId: string;
+  employeeId: string;
+  paymentTypeId: string;
+  lines: LoyverseReceiptLine[];
+  note?: string;
+}) {
+  if (!isConfigured() || params.lines.length === 0) return;
+
+  const totalMoney = params.lines.reduce((sum, l) => sum + l.price * l.quantity, 0);
+  const body = {
+    store_id: params.storeId,
+    employee_id: params.employeeId,
+    receipt_date: new Date().toISOString(),
+    source: "Tienda en línea",
+    note: params.note,
+    line_items: params.lines.map((l) => ({
+      variant_id: l.variantId,
+      quantity: l.quantity,
+      price: l.price,
+    })),
+    payments: [{ payment_type_id: params.paymentTypeId, money_amount: totalMoney }],
+  };
+  console.log("[loyverse] creating sale receipt:", JSON.stringify(body));
+  await loyverseFetch("/receipts", { method: "POST", body: JSON.stringify(body) });
+}
+
 export function loyverseConfigured() {
   return isConfigured();
 }

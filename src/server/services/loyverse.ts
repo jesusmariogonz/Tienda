@@ -1,11 +1,15 @@
 import { prisma } from "@/lib/prisma";
 import {
   listAllLoyverseVariants,
-  pushLoyverseInventory,
+  listLoyversePaymentTypes,
+  listLoyverseEmployees,
+  createLoyverseSaleReceipt,
   loyverseConfigured,
   loyverseStoreId,
   type LoyverseItemVariant,
 } from "@/lib/loyverse";
+
+const ONLINE_PAYMENT_TYPE_NAME = "venta en línea";
 
 function normalize(text: string) {
   return text
@@ -215,26 +219,62 @@ export async function applyLoyverseInventoryLevel(loyverseVariantId: string, qua
   ]);
 }
 
-/** Pushes this store's current stock for the given variants to Loyverse —
- * call after an online sale decrements our inventory, so Loyverse (used
- * for in-person selling) doesn't oversell something the website already
- * sold. Best-effort: swallows errors, never blocks the sale. */
-export async function pushInventoryToLoyverse(variantIds: string[]) {
-  if (!loyverseConfigured() || variantIds.length === 0) return;
+/** Registers a paid online order as a real sale receipt in Loyverse (tagged
+ * with the "Venta en línea" payment type the admin creates by hand in Back
+ * Office), instead of only adjusting stock — so it shows up in Loyverse's
+ * own sales reports and can be told apart from cash/card/transfer counter
+ * sales. Only includes line items whose variant is actually linked to
+ * Loyverse; no-ops entirely if nothing is linked, the payment type doesn't
+ * exist yet, or Loyverse has no employee to attribute the sale to.
+ * Best-effort — callers should catch and log, never block the order. */
+export async function recordOnlineSaleInLoyverse(order: {
+  orderNumber: string;
+  items: { variantId: string; quantity: number; unitPrice: number | string | { toString(): string } }[];
+}) {
+  if (!loyverseConfigured()) return;
   const storeId = loyverseStoreId();
   if (!storeId) return;
 
-  const variants = await prisma.productVariant.findMany({
-    where: { id: { in: variantIds }, loyverseVariantId: { not: null } },
-    include: { inventory: true },
+  const linkedVariants = await prisma.productVariant.findMany({
+    where: {
+      id: { in: order.items.map((i) => i.variantId) },
+      loyverseVariantId: { not: null },
+    },
   });
-  if (variants.length === 0) return;
+  if (linkedVariants.length === 0) return;
 
-  await pushLoyverseInventory(
-    variants.map((v) => ({
-      variantId: v.loyverseVariantId!,
-      storeId,
-      quantity: v.inventory?.quantity ?? 0,
-    })),
-  );
+  const [paymentTypes, employees] = await Promise.all([
+    listLoyversePaymentTypes(),
+    listLoyverseEmployees(),
+  ]);
+  const paymentType = paymentTypes.find((p) => normalize(p.name) === normalize(ONLINE_PAYMENT_TYPE_NAME));
+  if (!paymentType) {
+    console.error(
+      `[loyverse] no "${ONLINE_PAYMENT_TYPE_NAME}" payment type found in Loyverse — create it in Back Office → Settings → Payment types to record online sales as receipts`,
+    );
+    return;
+  }
+  const employee = employees[0];
+  if (!employee) {
+    console.error("[loyverse] no employee found — can't attribute the sale receipt to anyone");
+    return;
+  }
+
+  const byVariantId = new Map(linkedVariants.map((v) => [v.id, v]));
+  const lines = order.items
+    .filter((i) => byVariantId.has(i.variantId))
+    .map((i) => ({
+      variantId: byVariantId.get(i.variantId)!.loyverseVariantId!,
+      quantity: i.quantity,
+      price: Number(i.unitPrice),
+    }));
+
+  await createLoyverseSaleReceipt({
+    storeId,
+    employeeId: employee.id,
+    paymentTypeId: paymentType.id,
+    lines,
+    note: `Orden ${order.orderNumber}`,
+  });
 }
+

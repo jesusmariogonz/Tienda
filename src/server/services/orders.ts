@@ -3,7 +3,7 @@ import { Prisma } from "@/generated/prisma";
 import { checkLowStockAndAlert, sendNewOrderAdminAlert, sendOrderConfirmationEmail } from "./notifications";
 import { resolveShippingCost, type ShippingSelection } from "./shipping";
 import { saveSkydropxQuote } from "./shipments";
-import { pushInventoryToLoyverse } from "./loyverse";
+import { recordOnlineSaleInLoyverse } from "./loyverse";
 
 export type CheckoutItemInput = {
   variantId: string;
@@ -198,9 +198,14 @@ export async function confirmOrderPaid(orderId: string) {
     );
   }
 
-  await pushInventoryToLoyverse(order.items.map((item) => item.variantId)).catch((err) =>
-    console.error("[orders] failed to push inventory to Loyverse:", err),
-  );
+  await recordOnlineSaleInLoyverse({
+    orderNumber: order.orderNumber,
+    items: order.items.map((item) => ({
+      variantId: item.variantId,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+    })),
+  }).catch((err) => console.error("[orders] failed to record sale in Loyverse:", err));
 }
 
 /** Removes every "Compra de prueba" demo order (paymentProvider stays NULL

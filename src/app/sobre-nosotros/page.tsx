@@ -22,6 +22,16 @@ export default function SobreNosotrosPage() {
           ubicación.
         </p>
       </div>
+
+      <div>
+        <h2 className="mb-3 text-sm font-semibold tracking-wide text-zinc-900 uppercase">
+          Nuestra ubicación
+        </h2>
+        <div className="flex aspect-video w-full items-center justify-center rounded-lg border border-dashed border-zinc-300 bg-zinc-50 text-sm text-zinc-400">
+          Mapa pendiente — falta la dirección o el enlace de Google Maps del
+          local.
+        </div>
+      </div>
     </main>
   );
 }

@@ -58,7 +58,7 @@ export function MegaMenu({
                 onHover={() => setHovered("categorias")}
               />
               <MenuLink
-                href="/#catalogo"
+                href="/descuentos"
                 label="Descuentos"
                 onClick={() => setOpen(false)}
                 onHover={() => setHovered(null)}

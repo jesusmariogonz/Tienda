@@ -58,6 +58,8 @@ export default async function EditProductPage({
           wholesaleDiscountPercent: product.wholesaleDiscountPercent
             ? Number(product.wholesaleDiscountPercent)
             : null,
+          discountEnabled: product.discountEnabled,
+          discountPercent: product.discountPercent ? Number(product.discountPercent) : null,
         }}
       />
 

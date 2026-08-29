@@ -29,6 +29,7 @@ export function ProductVariantPicker({
   weightKg,
   variants,
   wholesale,
+  discountPercent,
 }: {
   productSlug: string;
   productName: string;
@@ -37,6 +38,9 @@ export function ProductVariantPicker({
   weightKg?: number | null;
   variants: Variant[];
   wholesale?: Wholesale | null;
+  /** Weekly "3 prendas en descuento" flat discount — applies unless the
+   * wholesale price kicks in for this line, since those don't stack. */
+  discountPercent?: number | null;
 }) {
   const router = useRouter();
   const addItem = useCart((s) => s.addItem);
@@ -69,10 +73,13 @@ export function ProductVariantPicker({
   const maxQuantity = selected?.stock ?? 1;
 
   const wholesaleActive = Boolean(wholesale && quantity >= wholesale.minQty);
+  const discountActive = Boolean(!wholesaleActive && discountPercent);
   const unitPrice =
     selected && wholesaleActive && wholesale
       ? selected.price * (1 - wholesale.discountPercent / 100)
-      : (selected?.price ?? basePrice);
+      : selected && discountActive && discountPercent
+        ? selected.price * (1 - discountPercent / 100)
+        : (selected?.price ?? basePrice);
 
   function selectColor(name: string) {
     setColor(name);
@@ -113,7 +120,7 @@ export function ProductVariantPicker({
       image,
       size: selected.size,
       color: selected.color,
-      price: selected.price,
+      price: unitPrice,
       quantity,
       maxQuantity: selected.stock,
       weightKg,
@@ -126,12 +133,17 @@ export function ProductVariantPicker({
       <div>
         <p className="text-xl font-medium">
           {formatPrice(unitPrice)}
-          {wholesaleActive && (
+          {(wholesaleActive || discountActive) && (
             <span className="ml-2 text-sm font-normal text-zinc-400 line-through">
               {formatPrice(selected?.price ?? basePrice)}
             </span>
           )}
         </p>
+        {discountActive && (
+          <p className="mt-1 text-xs font-medium text-sky-600">
+            ¡En descuento! -{discountPercent}%
+          </p>
+        )}
         {wholesale && (
           <p className="mt-1 text-xs text-purple-700">
             {wholesaleActive
@@ -269,6 +281,11 @@ export function ProductVariantPicker({
           Comprar ahora
         </button>
       </div>
+
+      <p className="text-xs text-zinc-400">
+        Las fotos del modelo están generadas con inteligencia artificial —
+        puede haber ligeras variaciones respecto a la prenda que recibes.
+      </p>
     </div>
   );
 }

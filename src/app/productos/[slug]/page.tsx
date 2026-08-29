@@ -73,6 +73,11 @@ export default async function ProductPage({
                   }
                 : null
             }
+            discountPercent={
+              product.discountEnabled && product.discountPercent
+                ? Number(product.discountPercent)
+                : null
+            }
           />
         </div>
       </div>

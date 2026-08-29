@@ -308,7 +308,11 @@ export default function CheckoutPage() {
             </section>
 
             <section className="rounded-xl border border-zinc-200 bg-white p-4 sm:p-5">
-              <h2 className="mb-3 text-sm font-semibold text-zinc-900">Dirección de envío</h2>
+              <h2 className="mb-1 text-sm font-semibold text-zinc-900">Dirección de envío</h2>
+              <p className="mb-3 text-xs text-amber-700">
+                Asegúrate de llenar bien estos datos — son los que se usan
+                para generar tu guía de envío.
+              </p>
               <div className="flex flex-col gap-3">
                 <div>
                   <label className="mb-1 block text-xs text-zinc-500">Código postal</label>
