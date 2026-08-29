@@ -316,18 +316,38 @@ export async function bookSkydropxShipment(params: {
     }),
   });
 
+  // Logged unconditionally (not just on failure) so the very next attempt —
+  // success or not — leaves a record of Skydropx's actual response shape in
+  // Vercel's Runtime Logs. The exact field names below are a best guess
+  // across the flat/JSON:API-ish shapes Skydropx has used in other
+  // endpoints; this sandbox can't reach their docs to confirm live.
+  console.log("[skydropx] /shipments response:", JSON.stringify(shipment));
+
+  const attrs = shipment.data?.attributes ?? shipment.data ?? shipment;
   const trackingNumber =
-    shipment.master_tracking_number ?? shipment.tracking_number ?? shipment.data?.tracking_number;
+    attrs.master_tracking_number ??
+    attrs.tracking_number ??
+    shipment.master_tracking_number ??
+    shipment.tracking_number;
+
   if (!trackingNumber) {
-    throw new Error(shipment.error_message_detail ?? "Skydropx no devolvió número de guía");
+    const detail =
+      shipment.error_message_detail ??
+      shipment.errors?.[0]?.detail ??
+      (shipment.errors ? JSON.stringify(shipment.errors) : undefined);
+    throw new Error(
+      detail
+        ? `Skydropx no devolvió número de guía: ${detail}`
+        : "Skydropx no devolvió número de guía — revisa los logs de Vercel para ver la respuesta completa",
+    );
   }
 
   return {
-    carrier: shipment.rate?.provider_display_name ?? "Skydropx",
+    carrier: attrs.rate?.provider_display_name ?? shipment.rate?.provider_display_name ?? "Skydropx",
     trackingNumber,
-    trackingUrl: shipment.tracking_url ?? null,
-    labelUrl: shipment.label_url ?? null,
-    cost: Number(shipment.rate?.total ?? 0),
+    trackingUrl: attrs.tracking_url ?? shipment.tracking_url ?? null,
+    labelUrl: attrs.label_url ?? shipment.label_url ?? null,
+    cost: Number(attrs.rate?.total ?? shipment.rate?.total ?? 0),
   };
 }
 
