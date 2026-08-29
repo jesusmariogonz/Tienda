@@ -278,6 +278,17 @@ export function computeDiscountedLineAmountsCents(order: {
   return amounts;
 }
 
+/** Recent paid orders for the admin "Pedidos" page — mainly so the owner
+ * can manually re-trigger the confirmation email if a send silently failed
+ * (e.g. a Resend hiccup) without needing our help. */
+export function listRecentPaidOrders(limit = 30) {
+  return prisma.order.findMany({
+    where: { status: "PAID" },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+  });
+}
+
 export async function getOrderById(id: string) {
   return prisma.order.findUnique({
     where: { id },
@@ -293,4 +304,23 @@ export async function getOrderById(id: string) {
       },
     },
   });
+}
+
+/** Manually re-sends the confirmation email — for when a send silently
+ * failed (e.g. Resend/env hiccup) and the admin wants to retry without
+ * involving support. Throws on failure so the admin action can surface it,
+ * unlike the best-effort .catch used during the normal checkout flow. */
+export async function resendOrderConfirmationEmail(orderId: string) {
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: {
+      items: {
+        include: {
+          variant: { include: { product: { include: { images: true } } } },
+        },
+      },
+    },
+  });
+  if (!order) throw new Error("Orden no encontrada");
+  await sendOrderConfirmationEmail(order);
 }

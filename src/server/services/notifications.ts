@@ -240,11 +240,12 @@ export async function sendOrderConfirmationEmail(order: OrderWithItems) {
 </body>
 </html>`;
 
-  await sendEmail({
+  const sent = await sendEmail({
     to: order.customerEmail,
     subject: `Confirmación de tu orden ${orderCode(order)}`,
     html,
   });
+  if (!sent) return;
 
   await prisma.order.update({
     where: { id: order.id },
