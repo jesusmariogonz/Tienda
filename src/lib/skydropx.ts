@@ -133,7 +133,7 @@ function skydropxAddress(a: {
     area_level3: a.city ?? "",
     postal_code: a.zip ?? "",
     country_code: "MX",
-    reference: a.reference ?? "N/A",
+    reference: a.reference || "N/A",
   };
 }
 
