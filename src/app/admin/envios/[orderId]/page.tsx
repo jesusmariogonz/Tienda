@@ -120,13 +120,20 @@ export default async function AdminEnvioDetailPage({
             </p>
           ) : pendingRates && pendingRates.length > 0 ? (
             <>
-              <p className="text-xs text-zinc-500">
-                Elige la paquetería/tarifa y cómo entregas el paquete:
-              </p>
-              <form action={bookSkydropxAction} className="flex flex-col gap-2">
-                <input type="hidden" name="orderId" value={order.id} />
-                <div className="flex flex-col gap-1.5">
-                  {pendingRates.map((rate, i) => (
+              {(() => {
+                const selectedRateId = order.shipment?.skydropxSelectedRateId ?? null;
+                // Orders placed before this field existed don't have it —
+                // fall back to matching the exact amount the customer paid
+                // for shipping, which still narrows it down in practice.
+                const selectedRate = selectedRateId
+                  ? pendingRates.find((r) => r.id === selectedRateId)
+                  : pendingRates.find((r) => r.total === Number(order.shippingCost));
+                const otherRates = selectedRate
+                  ? pendingRates.filter((r) => r.id !== selectedRateId)
+                  : pendingRates;
+
+                function RateOption({ rate, defaultChecked }: { rate: SkydropxRate; defaultChecked: boolean }) {
+                  return (
                     <label
                       key={rate.id}
                       className="flex cursor-pointer items-start gap-2 rounded-md border border-zinc-200 p-2 text-sm has-[:checked]:border-black has-[:checked]:bg-zinc-50"
@@ -135,7 +142,7 @@ export default async function AdminEnvioDetailPage({
                         type="radio"
                         name="rateId"
                         value={rate.id}
-                        defaultChecked={i === 0}
+                        defaultChecked={defaultChecked}
                         className="mt-0.5"
                       />
                       <span>
@@ -150,24 +157,64 @@ export default async function AdminEnvioDetailPage({
                         </span>
                       </span>
                     </label>
-                  ))}
-                </div>
+                  );
+                }
 
-                <label className="mt-1 flex items-center gap-2 text-sm">
-                  <input type="checkbox" name="requestPickup" defaultChecked />
-                  Solicitar recolección a domicilio (si la tarifa elegida la
-                  soporta; si no, deja el paquete en sucursal)
-                </label>
+                return (
+                  <>
+                    <p className="text-xs text-zinc-500">
+                      {selectedRate
+                        ? "El cliente ya eligió y pagó esta opción:"
+                        : "Elige la paquetería/tarifa y cómo entregas el paquete:"}
+                    </p>
+                    <form action={bookSkydropxAction} className="flex flex-col gap-2">
+                      <input type="hidden" name="orderId" value={order.id} />
+                      <div className="flex flex-col gap-1.5">
+                        {selectedRate ? (
+                          <div className="rounded-md border-2 border-green-600 bg-green-50 p-0.5">
+                            <RateOption rate={selectedRate} defaultChecked />
+                            <p className="px-2 pb-1.5 text-[11px] font-medium text-green-700">
+                              ✓ Elegida por el cliente
+                            </p>
+                          </div>
+                        ) : (
+                          pendingRates.map((rate, i) => (
+                            <RateOption key={rate.id} rate={rate} defaultChecked={i === 0} />
+                          ))
+                        )}
 
-                <div className="mt-2 flex gap-2">
-                  <button
-                    type="submit"
-                    className="flex-1 rounded-md bg-black px-3 py-2 text-sm font-medium text-white"
-                  >
-                    Confirmar y generar guía
-                  </button>
-                </div>
-              </form>
+                        {selectedRate && otherRates.length > 0 && (
+                          <details className="mt-1">
+                            <summary className="cursor-pointer text-xs text-zinc-500 underline">
+                              Ver otras {otherRates.length} opciones (cambiar la tarifa elegida)
+                            </summary>
+                            <div className="mt-1.5 flex flex-col gap-1.5">
+                              {otherRates.map((rate) => (
+                                <RateOption key={rate.id} rate={rate} defaultChecked={false} />
+                              ))}
+                            </div>
+                          </details>
+                        )}
+                      </div>
+
+                      <label className="mt-1 flex items-center gap-2 text-sm">
+                        <input type="checkbox" name="requestPickup" defaultChecked />
+                        Solicitar recolección a domicilio (si la tarifa elegida la
+                        soporta; si no, deja el paquete en sucursal)
+                      </label>
+
+                      <div className="mt-2 flex gap-2">
+                        <button
+                          type="submit"
+                          className="flex-1 rounded-md bg-black px-3 py-2 text-sm font-medium text-white"
+                        >
+                          Confirmar y generar guía
+                        </button>
+                      </div>
+                    </form>
+                  </>
+                );
+              })()}
               <form action={cancelSkydropxQuoteAction}>
                 <input type="hidden" name="orderId" value={order.id} />
                 <button type="submit" className="text-xs text-zinc-500 underline">

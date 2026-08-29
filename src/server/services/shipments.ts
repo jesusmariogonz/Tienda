@@ -64,17 +64,31 @@ export async function saveSkydropxQuote(
   orderId: string,
   quotationId: string,
   rates: unknown,
+  selectedRateId?: string,
 ) {
   return prisma.shipment.upsert({
     where: { orderId },
-    create: { orderId, skydropxQuotationId: quotationId, skydropxQuoteJson: rates as Prisma.InputJsonValue },
-    update: { skydropxQuotationId: quotationId, skydropxQuoteJson: rates as Prisma.InputJsonValue },
+    create: {
+      orderId,
+      skydropxQuotationId: quotationId,
+      skydropxQuoteJson: rates as Prisma.InputJsonValue,
+      skydropxSelectedRateId: selectedRateId ?? null,
+    },
+    update: {
+      skydropxQuotationId: quotationId,
+      skydropxQuoteJson: rates as Prisma.InputJsonValue,
+      skydropxSelectedRateId: selectedRateId ?? null,
+    },
   });
 }
 
 export async function clearSkydropxQuote(orderId: string) {
   await prisma.shipment.updateMany({
     where: { orderId },
-    data: { skydropxQuotationId: null, skydropxQuoteJson: Prisma.JsonNull },
+    data: {
+      skydropxQuotationId: null,
+      skydropxQuoteJson: Prisma.JsonNull,
+      skydropxSelectedRateId: null,
+    },
   });
 }

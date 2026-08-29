@@ -127,7 +127,7 @@ export async function createPendingOrder(
   // Save the verified quotation against the order so the admin can book the
   // exact rate the customer already paid for, instead of re-quoting.
   if (shipping.quotationId && shipping.rates) {
-    await saveSkydropxQuote(order.id, shipping.quotationId, shipping.rates);
+    await saveSkydropxQuote(order.id, shipping.quotationId, shipping.rates, shippingSelection?.rateId);
   }
 
   return order;

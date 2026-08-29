@@ -286,6 +286,10 @@ model Shipment {
   // booking a label — cleared once a rate is booked.
   skydropxQuotationId String?
   skydropxQuoteJson   Json?
+  // Which rate (by id, matching one entry in skydropxQuoteJson) the
+  // customer actually picked and paid for at checkout — so the admin isn't
+  // stuck guessing among options the buyer never saw the price of.
+  skydropxSelectedRateId String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
