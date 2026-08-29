@@ -3,6 +3,7 @@ import { listLowStock } from "@/server/services/inventory";
 import { getDashboardStats, listPendingOrders, listRecentActivity } from "@/server/services/dashboard";
 import { formatPrice } from "@/lib/money";
 import { dismissPendingOrderAction, dismissAllPendingOrdersAction } from "./actions";
+import { MarkPaidButton } from "@/components/mark-paid-button";
 
 const MOVEMENT_LABELS: Record<string, string> = {
   RESTOCK: "Restock",
@@ -139,11 +140,14 @@ export default async function AdminDashboard() {
                     </li>
                   ))}
                 </ul>
-                <form action={dismissPendingOrderAction.bind(null, order.id)} className="mt-2">
-                  <button type="submit" className="text-xs text-zinc-500 underline">
-                    Descartar
-                  </button>
-                </form>
+                <div className="mt-2 flex items-center gap-4">
+                  <MarkPaidButton orderId={order.id} />
+                  <form action={dismissPendingOrderAction.bind(null, order.id)}>
+                    <button type="submit" className="text-xs text-zinc-500 underline">
+                      Descartar
+                    </button>
+                  </form>
+                </div>
               </div>
             ))}
           </div>
