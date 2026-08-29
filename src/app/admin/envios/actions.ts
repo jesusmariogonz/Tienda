@@ -10,7 +10,12 @@ import {
   upsertShipment,
 } from "@/server/services/shipments";
 import { getOriginAddress, saveShippingSettings } from "@/server/services/shipping";
-import { bookSkydropxShipment, getSkydropxBalance, quoteSkydropxShipment } from "@/lib/skydropx";
+import {
+  bookSkydropxShipment,
+  getSkydropxBalance,
+  quoteSkydropxShipment,
+  refreshSkydropxShipment,
+} from "@/lib/skydropx";
 import { DEFAULT_ITEM_WEIGHT_KG } from "@/lib/config";
 
 function truncate(message: string) {
@@ -134,13 +139,17 @@ export async function bookSkydropxAction(formData: FormData) {
       requestPickup,
     });
 
+    // Skydropx already charged this booking regardless of whether it's
+    // ready yet — clear the quote either way so the admin can't
+    // accidentally book (and pay for) a second shipment for this order.
     await upsertShipment(orderId, {
       carrier: result.carrier,
-      trackingNumber: result.trackingNumber,
+      trackingNumber: result.trackingNumber ?? undefined,
       trackingUrl: result.trackingUrl ?? undefined,
       labelUrl: result.labelUrl ?? undefined,
       cost: result.cost,
-      status: "LABEL_CREATED",
+      status: result.pending ? "PENDING" : "LABEL_CREATED",
+      skydropxShipmentId: result.skydropxShipmentId,
     });
     await clearSkydropxQuote(orderId);
   } catch (err) {
@@ -181,6 +190,40 @@ export async function checkSkydropxBalanceAction() {
   }
 
   redirect(`/admin/envios?skydropx_balance=${encodeURIComponent(truncate(message))}`);
+}
+
+/** Re-checks a shipment still waiting on Skydropx to assign a tracking
+ * number, filling it in once ready. Safe to click repeatedly — it never
+ * books anything new. */
+export async function refreshSkydropxShipmentAction(formData: FormData) {
+  const session = await auth();
+  if (!session?.user) return;
+
+  const orderId = formData.get("orderId") as string;
+  if (!orderId) return;
+
+  const order = await getOrderWithShipment(orderId);
+  if (!order?.shipment?.skydropxShipmentId) return;
+
+  try {
+    const result = await refreshSkydropxShipment(order.shipment.skydropxShipmentId);
+    await upsertShipment(orderId, {
+      carrier: result.carrier,
+      trackingNumber: result.trackingNumber ?? undefined,
+      trackingUrl: result.trackingUrl ?? undefined,
+      labelUrl: result.labelUrl ?? undefined,
+      cost: result.cost,
+      status: result.pending ? "PENDING" : "LABEL_CREATED",
+      skydropxShipmentId: result.skydropxShipmentId,
+    });
+  } catch (err) {
+    console.error("[envios] Skydropx refresh failed:", err);
+    errorRedirect(orderId, err instanceof Error ? err.message : "Error desconocido");
+  }
+
+  revalidatePath("/admin/envios");
+  revalidatePath(`/admin/envios/${orderId}`);
+  redirect(`/admin/envios/${orderId}`);
 }
 
 export async function saveShippingSettingsAction(formData: FormData) {

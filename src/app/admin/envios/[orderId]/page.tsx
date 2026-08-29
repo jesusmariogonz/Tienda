@@ -7,6 +7,7 @@ import {
   bookSkydropxAction,
   cancelSkydropxQuoteAction,
   quoteSkydropxAction,
+  refreshSkydropxShipmentAction,
   saveShipmentAction,
 } from "../actions";
 
@@ -43,6 +44,7 @@ export default async function AdminEnvioDetailPage({
   const canAutoGenerate = skydropxConfigured() && Boolean(address?.street);
   const pendingRates = (order.shipment?.skydropxQuoteJson as SkydropxRate[] | null) ?? null;
   const hasLabel = Boolean(order.shipment?.trackingNumber);
+  const bookingInProgress = Boolean(order.shipment?.skydropxShipmentId) && !hasLabel;
 
   return (
     <div className="flex flex-col gap-6">
@@ -118,6 +120,23 @@ export default async function AdminEnvioDetailPage({
               Guía generada con {order.shipment?.carrier}. Puedes editar los
               detalles abajo si algo cambió.
             </p>
+          ) : bookingInProgress ? (
+            <>
+              <p className="text-xs text-amber-700">
+                Skydropx ya cobró la guía con {order.shipment?.carrier} pero
+                todavía no asigna el número de rastreo — esto es normal, solo
+                tarda un poco. Actualiza el estado en unos minutos.
+              </p>
+              <form action={refreshSkydropxShipmentAction}>
+                <input type="hidden" name="orderId" value={order.id} />
+                <button
+                  type="submit"
+                  className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+                >
+                  Actualizar estado
+                </button>
+              </form>
+            </>
           ) : pendingRates && pendingRates.length > 0 ? (
             <>
               {(() => {

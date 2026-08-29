@@ -104,11 +104,16 @@ export type SkydropxQuote = {
 };
 
 export type SkydropxLabelResult = {
+  skydropxShipmentId: string;
   carrier: string;
-  trackingNumber: string;
+  trackingNumber: string | null;
   trackingUrl: string | null;
   labelUrl: string | null;
   cost: number;
+  /** True when Skydropx accepted (and charged) the booking but hasn't
+   * assigned a tracking number yet — check back later instead of
+   * re-booking. */
+  pending: boolean;
 };
 
 function skydropxAddress(a: {
@@ -265,7 +270,51 @@ export async function getSkydropxQuotation(quotationId: string): Promise<Skydrop
   }
 }
 
-/** Step 3: books a previously quoted rate into an actual shipment/label. */
+// Confirmed against a real /shipments response (Aug 2026): it's JSON:API
+// shaped — {data: {id, attributes: {workflow_status, carrier_name, total,
+// master_tracking_number, ...}}, included: [{type: "package", attributes:
+// {tracking_number, label_url, tracking_status, ...}}]}. Booking a
+// shipment is asynchronous: right after creation workflow_status is
+// "in_progress" and both master_tracking_number and the package's
+// tracking_number are null — Skydropx assigns them a bit later. So this
+// polls a few times before giving up, and exposes a standalone
+// refreshSkydropxShipment for the admin to re-check afterward if it's
+// still not ready.
+type ParsedSkydropxShipment = {
+  id: string;
+  carrier: string;
+  cost: number;
+  trackingNumber: string | null;
+  trackingUrl: string | null;
+  labelUrl: string | null;
+  ready: boolean;
+};
+
+function parseSkydropxShipment(raw: {
+  data?: { id?: string; attributes?: Record<string, unknown> };
+  included?: { type?: string; attributes?: Record<string, unknown> }[];
+}): ParsedSkydropxShipment {
+  const attrs = raw.data?.attributes ?? {};
+  const pkg = raw.included?.find((i) => i.type === "package")?.attributes ?? {};
+  const trackingNumber =
+    (pkg.tracking_number as string | null) ?? (attrs.master_tracking_number as string | null) ?? null;
+
+  return {
+    id: (raw.data?.id as string) ?? "",
+    carrier: (attrs.carrier_name as string) || "Skydropx",
+    cost: Number(attrs.total ?? 0),
+    trackingNumber,
+    trackingUrl: (pkg.tracking_url_provider as string | null) ?? null,
+    labelUrl: (pkg.label_url as string | null) ?? null,
+    ready: Boolean(trackingNumber),
+  };
+}
+
+/** Step 3: books a previously quoted rate into an actual shipment/label.
+ * `pending: true` in the result means Skydropx accepted and charged the
+ * booking but hasn't assigned a tracking number yet — call
+ * refreshSkydropxShipment(skydropxShipmentId) again later instead of
+ * re-booking (that would create and pay for a second shipment). */
 export async function bookSkydropxShipment(params: {
   quotationId: string;
   rateId: string;
@@ -300,7 +349,7 @@ export async function bookSkydropxShipment(params: {
   });
   const parcel = buildParcel(params.packageWeightKg);
 
-  const shipment = await skydropxFetch("/shipments", {
+  const created = await skydropxFetch("/shipments", {
     method: "POST",
     body: JSON.stringify({
       shipment: {
@@ -315,39 +364,49 @@ export async function bookSkydropxShipment(params: {
       },
     }),
   });
+  console.log("[skydropx] /shipments create response:", JSON.stringify(created));
 
-  // Logged unconditionally (not just on failure) so the very next attempt —
-  // success or not — leaves a record of Skydropx's actual response shape in
-  // Vercel's Runtime Logs. The exact field names below are a best guess
-  // across the flat/JSON:API-ish shapes Skydropx has used in other
-  // endpoints; this sandbox can't reach their docs to confirm live.
-  console.log("[skydropx] /shipments response:", JSON.stringify(shipment));
-
-  const attrs = shipment.data?.attributes ?? shipment.data ?? shipment;
-  const trackingNumber =
-    attrs.master_tracking_number ??
-    attrs.tracking_number ??
-    shipment.master_tracking_number ??
-    shipment.tracking_number;
-
-  if (!trackingNumber) {
+  if (!created.data?.id) {
     const detail =
-      shipment.error_message_detail ??
-      shipment.errors?.[0]?.detail ??
-      (shipment.errors ? JSON.stringify(shipment.errors) : undefined);
-    throw new Error(
-      detail
-        ? `Skydropx no devolvió número de guía: ${detail}`
-        : "Skydropx no devolvió número de guía — revisa los logs de Vercel para ver la respuesta completa",
-    );
+      created.error_message_detail ??
+      created.errors?.[0]?.detail ??
+      (created.errors ? JSON.stringify(created.errors) : undefined);
+    throw new Error(detail ? `Skydropx rechazó el envío: ${detail}` : "Skydropx no devolvió un envío válido");
+  }
+
+  let parsed = parseSkydropxShipment(created);
+  for (let attempt = 0; attempt < 4 && !parsed.ready; attempt++) {
+    await sleep(1500);
+    const polled = await skydropxFetch(`/shipments/${parsed.id}`);
+    console.log(`[skydropx] /shipments/${parsed.id} poll ${attempt}:`, JSON.stringify(polled));
+    parsed = parseSkydropxShipment(polled);
   }
 
   return {
-    carrier: attrs.rate?.provider_display_name ?? shipment.rate?.provider_display_name ?? "Skydropx",
-    trackingNumber,
-    trackingUrl: attrs.tracking_url ?? shipment.tracking_url ?? null,
-    labelUrl: attrs.label_url ?? shipment.label_url ?? null,
-    cost: Number(attrs.rate?.total ?? shipment.rate?.total ?? 0),
+    skydropxShipmentId: parsed.id,
+    carrier: parsed.carrier,
+    trackingNumber: parsed.trackingNumber,
+    trackingUrl: parsed.trackingUrl,
+    labelUrl: parsed.labelUrl,
+    cost: parsed.cost,
+    pending: !parsed.ready,
+  };
+}
+
+/** Re-checks a shipment booked earlier that was still "pending" (no
+ * tracking number yet) — for the admin's "Actualizar estado" button. */
+export async function refreshSkydropxShipment(skydropxShipmentId: string): Promise<SkydropxLabelResult> {
+  const raw = await skydropxFetch(`/shipments/${skydropxShipmentId}`);
+  console.log(`[skydropx] /shipments/${skydropxShipmentId} refresh:`, JSON.stringify(raw));
+  const parsed = parseSkydropxShipment(raw);
+  return {
+    skydropxShipmentId: parsed.id,
+    carrier: parsed.carrier,
+    trackingNumber: parsed.trackingNumber,
+    trackingUrl: parsed.trackingUrl,
+    labelUrl: parsed.labelUrl,
+    cost: parsed.cost,
+    pending: !parsed.ready,
   };
 }
 

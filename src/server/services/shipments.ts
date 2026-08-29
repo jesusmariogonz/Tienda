@@ -27,6 +27,10 @@ export type ShipmentInput = {
   cost?: number;
   notes?: string;
   status?: "PENDING" | "LABEL_CREATED" | "IN_TRANSIT" | "DELIVERED" | "RETURNED" | "CANCELLED";
+  /** Skydropx's own shipment id, kept so a booking that's still generating
+   * its tracking number can be re-checked later — undefined leaves
+   * whatever's already stored untouched. */
+  skydropxShipmentId?: string;
 };
 
 export async function upsertShipment(orderId: string, input: ShipmentInput) {
@@ -40,6 +44,7 @@ export async function upsertShipment(orderId: string, input: ShipmentInput) {
     status: input.status ?? "PENDING",
     shippedAt: input.status === "IN_TRANSIT" || input.status === "DELIVERED" ? new Date() : undefined,
     deliveredAt: input.status === "DELIVERED" ? new Date() : undefined,
+    skydropxShipmentId: input.skydropxShipmentId,
   };
 
   return prisma.shipment.upsert({
@@ -55,6 +60,7 @@ export async function upsertShipment(orderId: string, input: ShipmentInput) {
       status: input.status ?? "PENDING",
       shippedAt: data.shippedAt as Date | undefined,
       deliveredAt: data.deliveredAt as Date | undefined,
+      skydropxShipmentId: input.skydropxShipmentId ?? null,
     },
     update: data,
   });

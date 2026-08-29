@@ -290,6 +290,11 @@ model Shipment {
   // customer actually picked and paid for at checkout — so the admin isn't
   // stuck guessing among options the buyer never saw the price of.
   skydropxSelectedRateId String?
+  // Skydropx creates a shipment asynchronously — right after booking it
+  // often has no tracking number yet (workflow_status "in_progress").
+  // Kept so the admin can re-check status later instead of the booking
+  // attempt just failing with no way to recover it.
+  skydropxShipmentId String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
