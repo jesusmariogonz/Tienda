@@ -123,8 +123,11 @@ function skydropxAddress(a: {
   reference?: string;
 }) {
   return {
-    name: a.name,
-    company: a.company,
+    // Skydropx caps name/company at 30 chars and rejects the whole
+    // shipment otherwise — real customer names (two names + two surnames
+    // is common in Mexico) routinely run longer than that.
+    name: a.name.slice(0, 30),
+    company: a.company.slice(0, 30),
     phone: a.phone,
     email: a.email,
     street1: a.street ?? "",
@@ -133,7 +136,7 @@ function skydropxAddress(a: {
     area_level3: a.city ?? "",
     postal_code: a.zip ?? "",
     country_code: "MX",
-    reference: a.reference || "N/A",
+    reference: (a.reference || "N/A").slice(0, 30),
   };
 }
 
