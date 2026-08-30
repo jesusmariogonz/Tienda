@@ -261,9 +261,9 @@ export default function CheckoutPage() {
   }
 
   return (
-    <main className="flex-1 lg:grid lg:grid-cols-[1fr_420px]">
-      <div className="order-2 px-4 py-6 sm:px-6 lg:order-1 lg:px-10 lg:py-10">
-        <div className="mx-auto max-w-xl lg:mx-0 lg:max-w-none">
+    <main className="flex-1 bg-zinc-50 px-4 py-6 sm:px-6 lg:py-10">
+      <div className="mx-auto grid max-w-5xl gap-8 lg:grid-cols-[1fr_380px] lg:items-start">
+        <div className="order-2 lg:order-1">
           <h1 className="mb-6 text-xl font-semibold">Checkout</h1>
 
           {stockNotes.length > 0 && (
@@ -500,21 +500,36 @@ export default function CheckoutPage() {
                 <button
                   type="button"
                   onClick={() => setProvider("mercadopago")}
-                  className={`flex flex-1 items-center justify-center gap-2 rounded-md bg-[#FFE600] px-3 py-2.5 text-sm font-medium text-[#00263A] transition-opacity ${
+                  className={`flex flex-1 items-center justify-center gap-2 rounded-md bg-[#009ee3] px-3 py-2.5 text-sm font-medium text-white transition-opacity ${
                     provider === "mercadopago"
-                      ? "ring-2 ring-offset-2 ring-[#FFE600]"
+                      ? "ring-2 ring-offset-2 ring-[#009ee3]"
                       : "opacity-70 hover:opacity-100"
                   }`}
                 >
-                  <svg viewBox="0 0 32 32" className="h-5 w-5 shrink-0" aria-hidden>
-                    <circle cx="16" cy="16" r="16" fill="#00263A" />
-                    <path
-                      d="M16 8a8 8 0 1 0 8 8 8 8 0 0 0-8-8zm3.4 6.9-4.2 2.7a1 1 0 0 1-1.5-.9v-5.4a1 1 0 0 1 1.5-.9l4.2 2.7a1 1 0 0 1 0 1.8z"
-                      fill="#FFE600"
-                    />
-                  </svg>
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white text-xs leading-none">
+                    🤝
+                  </span>
                   Mercado Pago
                 </button>
+              </div>
+
+              <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                <span className="rounded border border-zinc-200 bg-white px-1.5 py-1 text-[10px] font-extrabold tracking-tight text-[#1a1f71] italic">
+                  VISA
+                </span>
+                <span className="flex items-center rounded border border-zinc-200 bg-white px-1.5 py-1">
+                  <span className="relative flex h-3.5 w-6 items-center">
+                    <span className="absolute left-0 h-3.5 w-3.5 rounded-full bg-[#eb001b]" />
+                    <span className="absolute right-0 h-3.5 w-3.5 rounded-full bg-[#f79e1b] mix-blend-multiply" />
+                  </span>
+                </span>
+                <span className="rounded border border-zinc-200 bg-[#2e77bc] px-1.5 py-1 text-[9px] font-bold text-white">
+                  AMEX
+                </span>
+                <span className="rounded border border-zinc-200 bg-white px-1.5 py-1 text-[10px] font-bold text-[#ff6000]">
+                  DISCOVER
+                </span>
+                <span className="text-[10px] text-zinc-400">y más</span>
               </div>
               {DEMO_CHECKOUT_ENABLED && (
                 <button
@@ -540,7 +555,7 @@ export default function CheckoutPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-full bg-purple-700 py-3.5 text-sm font-medium text-white transition-colors hover:bg-purple-800 disabled:opacity-50 lg:hidden"
+              className="w-full rounded-full bg-sky-600 py-3.5 text-sm font-medium text-white transition-colors hover:bg-sky-700 disabled:opacity-50 lg:hidden"
             >
               {loading ? "Procesando…" : `Pagar ${formatPrice(total)}`}
             </button>
@@ -554,11 +569,11 @@ export default function CheckoutPage() {
             </button>
           </form>
         </div>
-      </div>
 
-      <aside className="order-1 border-b border-purple-100 bg-purple-50/60 lg:order-2 lg:border-b-0 lg:border-l lg:min-h-screen">
-        <div className="mx-auto max-w-xl px-4 py-6 sm:px-6 lg:sticky lg:top-0 lg:max-w-none lg:px-8 lg:py-10">
-            <h2 className="mb-4 text-sm font-semibold text-purple-950 lg:text-base">
+        <aside className="order-1 lg:order-2 lg:sticky lg:top-6">
+          <div className="overflow-hidden rounded-xl border border-sky-200 bg-sky-100/70 shadow-sm">
+            <div className="p-5">
+              <h2 className="mb-4 text-base font-semibold text-sky-950">
               Tu pedido · {items.reduce((n, i) => n + i.quantity, 0)} artículo
               {items.reduce((n, i) => n + i.quantity, 0) === 1 ? "" : "s"}
             </h2>
@@ -577,24 +592,24 @@ export default function CheckoutPage() {
                         quality={90}
                       />
                     )}
-                    <span className="absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-purple-700 px-1 text-[10px] font-bold text-white">
+                    <span className="absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-sky-600 px-1 text-[10px] font-bold text-white">
                       {item.quantity}
                     </span>
                   </div>
                   <div className="flex flex-1 flex-col justify-center">
-                    <p className="text-sm font-medium text-zinc-900">{item.productName}</p>
+                    <p className="text-[15px] font-semibold text-zinc-900">{item.productName}</p>
                     <p className="text-xs text-zinc-500">
                       {item.color} / {item.size}
                     </p>
                   </div>
-                  <p className="self-center text-sm font-medium text-zinc-900">
+                  <p className="self-center text-[15px] font-semibold text-zinc-900">
                     {formatPrice(item.price * item.quantity)}
                   </p>
                 </li>
               ))}
             </ul>
 
-            <div className="border-t border-purple-100 py-4">
+            <div className="border-t border-sky-200 py-4">
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -625,7 +640,7 @@ export default function CheckoutPage() {
               )}
             </div>
 
-            <div className="flex flex-col gap-1.5 border-t border-purple-100 py-4">
+            <div className="flex flex-col gap-1.5 border-t border-sky-200 py-4">
               <div className="flex items-center justify-between text-sm text-zinc-600">
                 <span>Subtotal</span>
                 <span>{formatPrice(subtotal)}</span>
@@ -655,7 +670,7 @@ export default function CheckoutPage() {
                     : "El envío se calcula en base a distancia, peso y medidas."}
                 </p>
               </div>
-              <div className="mt-1 flex items-center justify-between border-t border-purple-100 pt-2 text-base font-semibold text-purple-950">
+              <div className="mt-1 flex items-center justify-between border-t border-sky-200 pt-2 text-base font-semibold text-sky-950">
                 <span>Total</span>
                 <span>{formatPrice(total)}</span>
               </div>
@@ -665,18 +680,20 @@ export default function CheckoutPage() {
               type="submit"
               form="checkout-form"
               disabled={loading}
-              className="hidden w-full rounded-full bg-purple-700 py-3.5 text-sm font-medium text-white transition-colors hover:bg-purple-800 disabled:opacity-50 lg:block"
+              className="hidden w-full rounded-full bg-sky-600 py-3.5 text-sm font-medium text-white transition-colors hover:bg-sky-700 disabled:opacity-50 lg:block"
             >
               {loading ? "Procesando…" : "Pagar"}
             </button>
 
-            <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 border-t border-purple-100 pt-3 text-xs text-zinc-500">
-              <span>🔒 Pago seguro</span>
-              <span>📦 Envío rastreado</span>
-              <span>↩️ Cambios sin complicaciones</span>
+              <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 border-t border-sky-200 pt-3 text-xs text-zinc-500">
+                <span>🔒 Pago seguro</span>
+                <span>📦 Envío rastreado</span>
+                <span>↩️ Cambios sin complicaciones</span>
+              </div>
             </div>
-        </div>
-      </aside>
+          </div>
+        </aside>
+      </div>
     </main>
   );
 }
