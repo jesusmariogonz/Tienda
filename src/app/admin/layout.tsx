@@ -13,6 +13,7 @@ const NAV = [
   { href: "/admin/loyverse", label: "Loyverse" },
   { href: "/admin/reportes", label: "Reportes" },
   { href: "/admin/resenas", label: "Reseñas" },
+  { href: "/admin/sobre-nosotros", label: "Sobre nosotros" },
 ];
 
 export default async function AdminLayout({
