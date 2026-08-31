@@ -6,25 +6,21 @@ import { STORE_ADDRESS } from "@/lib/config";
 
 const DEFINE_CARDS = [
   {
-    icon: "💪",
     title: "Estilo sin pretextos",
     text: "La ropa que quieres, accesible para quien realmente entrena y vive activo.",
     imageKey: "styleImageUrl" as const,
   },
   {
-    icon: "📦",
     title: "Envíos rápidos y rastreados",
     text: "Tu pedido sale en 24 horas hábiles con número de rastreo en tiempo real.",
     imageKey: "shippingImageUrl" as const,
   },
   {
-    icon: "🤝",
     title: "Trato directo",
     text: "Somos personas reales. Cualquier duda la resolvemos por WhatsApp al momento.",
     imageKey: "supportImageUrl" as const,
   },
   {
-    icon: "🔄",
     title: "Inventario siempre fresco",
     text: "Drops constantes con modelos nuevos para que siempre encuentres algo que te guste.",
     imageKey: "inventoryImageUrl" as const,
@@ -133,8 +129,7 @@ export default async function SobreNosotrosPage() {
                     </>
                   )}
                   <div className="relative">
-                    <span className="text-xl">{card.icon}</span>
-                    <p className={`mt-2 text-base font-bold ${imageUrl ? "text-white" : "text-zinc-900"}`}>
+                    <p className={`text-base font-bold ${imageUrl ? "text-white" : "text-zinc-900"}`}>
                       {card.title}
                     </p>
                     <p className={`mt-1 text-sm ${imageUrl ? "text-zinc-200" : "text-zinc-600"}`}>
