@@ -364,3 +364,17 @@ model PosSaleItem {
   @@index([posSaleId])
   @@index([variantId])
 }
+
+// ---------- Customer reviews (public submission, admin-approved) ----------
+
+model Review {
+  id           String   @id @default(cuid())
+  customerName String
+  rating       Int // 1-5
+  text         String
+  photoUrl     String?
+  approved     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  @@index([approved, createdAt])
+}
