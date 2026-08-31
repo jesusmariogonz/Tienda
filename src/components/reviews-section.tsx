@@ -23,9 +23,8 @@ function Stars({ rating, size = "text-sm" }: { rating: number; size?: string }) 
 }
 
 export function ReviewsSection({ reviews }: { reviews: Review[] }) {
-  if (reviews.length === 0) return null;
-
-  const average = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
+  const average =
+    reviews.length > 0 ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0;
 
   return (
     <section className="border-t border-zinc-200 bg-zinc-50 px-4 py-12 sm:px-6">
@@ -34,11 +33,19 @@ export function ReviewsSection({ reviews }: { reviews: Review[] }) {
           <h2 className="text-xs font-semibold tracking-widest text-zinc-500 uppercase">
             Reseñas de clientes
           </h2>
-          <div className="flex items-center gap-2">
-            <span className="text-lg font-bold text-zinc-900">{average.toFixed(1)}</span>
-            <Stars rating={Math.round(average)} size="text-lg" />
-          </div>
+          {reviews.length > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-lg font-bold text-zinc-900">{average.toFixed(1)}</span>
+              <Stars rating={Math.round(average)} size="text-lg" />
+            </div>
+          )}
         </div>
+
+        {reviews.length === 0 && (
+          <p className="mb-2 text-center text-sm text-zinc-500">
+            Todavía no hay reseñas — sé el primero en dejar la tuya.
+          </p>
+        )}
 
         <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2">
           {reviews.map((review) => (

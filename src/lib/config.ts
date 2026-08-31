@@ -13,9 +13,11 @@ export const currency = process.env.STORE_CURRENCY ?? "MXN";
 // shipping quotes still work before every product has one set.
 export const DEFAULT_ITEM_WEIGHT_KG = 0.3;
 
-// Shown at checkout and in order emails when the customer picks up in
-// person instead of shipping. TODO: replace with the real store address —
-// this is a placeholder until the owner sends it.
+// The physical store — used for the checkout pickup option, order
+// emails, and the map on /sobre-nosotros.
+export const STORE_ADDRESS =
+  process.env.NEXT_PUBLIC_STORE_ADDRESS ??
+  "Blvd. José Musa de León 1380, Los Pinos 1er Sector, 25204 Saltillo, Coah.";
+
 export const STORE_PICKUP_ADDRESS =
-  process.env.NEXT_PUBLIC_STORE_PICKUP_ADDRESS ??
-  "Dirección pendiente de confirmar — te la compartimos por WhatsApp.";
+  process.env.NEXT_PUBLIC_STORE_PICKUP_ADDRESS ?? STORE_ADDRESS;

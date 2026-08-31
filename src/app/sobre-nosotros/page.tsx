@@ -2,6 +2,7 @@ import Image from "next/image";
 import { ReviewsSection } from "@/components/reviews-section";
 import { listApprovedReviews } from "@/server/services/reviews";
 import { getAboutPageContent } from "@/server/services/about-page";
+import { STORE_ADDRESS } from "@/lib/config";
 
 const DEFINE_CARDS = [
   {
@@ -38,22 +39,22 @@ export default async function SobreNosotrosPage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <section className="bg-black px-4 py-16 sm:px-6 sm:py-20">
+      <section className="bg-white px-4 py-16 sm:px-6 sm:py-20">
         <div className="mx-auto max-w-3xl">
           <p className="text-xs font-semibold tracking-[0.2em] text-zinc-500 uppercase">
             Sobre nosotros
           </p>
           <h1 className="mt-3 text-4xl leading-[1.05] font-extrabold tracking-tight sm:text-5xl">
-            <span className="text-white">El estilo que quieres.</span>
+            <span className="text-zinc-900">El estilo que quieres.</span>
             <br />
-            <span className="text-zinc-500">El precio que mereces.</span>
+            <span className="text-zinc-400">El precio que mereces.</span>
           </h1>
-          <div className="mt-6 h-1 w-10 bg-white" />
+          <div className="mt-6 h-1 w-10 bg-zinc-900" />
 
-          <div className="mt-8 flex flex-col gap-5 text-[15px] leading-7 text-zinc-300">
+          <div className="mt-8 flex flex-col gap-5 text-[15px] leading-7 text-zinc-600">
             <p>
               Dupe Fit nació de una idea simple:{" "}
-              <strong className="font-semibold text-white">
+              <strong className="font-semibold text-zinc-900">
                 no deberías tener que elegir entre vestirte bien y gastar de
                 más.
               </strong>{" "}
@@ -62,7 +63,7 @@ export default async function SobreNosotrosPage() {
             </p>
             <p>
               Somos un negocio{" "}
-              <strong className="font-semibold text-white">
+              <strong className="font-semibold text-zinc-900">
                 100% mexicano, nacido en Saltillo
               </strong>
               , que lleva ropa deportiva de calidad a quienes saben que el
@@ -78,13 +79,13 @@ export default async function SobreNosotrosPage() {
             </p>
           </div>
 
-          <blockquote className="mt-8 border-l-2 border-zinc-600 pl-4 text-lg font-medium text-zinc-200 italic">
+          <blockquote className="mt-8 border-l-2 border-zinc-300 pl-4 text-lg font-medium text-zinc-700 italic">
             &quot;El lujo no está en la etiqueta. Está en quien lo lleva.&quot;
           </blockquote>
 
-          <p className="mt-8 text-[15px] leading-7 text-zinc-300">
+          <p className="mt-8 text-[15px] leading-7 text-zinc-600">
             Hoy contamos con{" "}
-            <strong className="font-semibold text-white">
+            <strong className="font-semibold text-zinc-900">
               local propio en Saltillo
             </strong>
             , tienda en línea con envíos a toda la república y una comunidad
@@ -93,14 +94,14 @@ export default async function SobreNosotrosPage() {
             ello.
           </p>
 
-          <div className="mt-10 grid grid-cols-3 gap-px overflow-hidden rounded-lg bg-zinc-800">
+          <div className="mt-10 grid grid-cols-3 gap-px overflow-hidden rounded-lg border border-zinc-200 bg-zinc-200">
             {[
               { value: "+300", label: "Prendas disponibles" },
               { value: "+200", label: "Clientes satisfechos" },
               { value: "Todo MX", label: "Envíos a toda la república" },
             ].map((stat) => (
-              <div key={stat.label} className="bg-zinc-950 px-4 py-6 text-center sm:text-left">
-                <p className="text-2xl font-extrabold text-white">{stat.value}</p>
+              <div key={stat.label} className="bg-zinc-50 px-4 py-6 text-center sm:text-left">
+                <p className="text-2xl font-extrabold text-zinc-900">{stat.value}</p>
                 <p className="mt-1 text-[10px] font-semibold tracking-widest text-zinc-500 uppercase">
                   {stat.label}
                 </p>
@@ -111,13 +112,13 @@ export default async function SobreNosotrosPage() {
           <p className="mt-12 text-xs font-semibold tracking-[0.2em] text-zinc-500 uppercase">
             Lo que nos define
           </p>
-          <div className="mt-4 grid gap-px overflow-hidden rounded-lg bg-zinc-800 sm:grid-cols-2">
+          <div className="mt-4 grid gap-px overflow-hidden rounded-lg border border-zinc-200 bg-zinc-200 sm:grid-cols-2">
             {DEFINE_CARDS.map((card) => {
               const imageUrl = content?.[card.imageKey];
               return (
                 <div
                   key={card.title}
-                  className="relative flex min-h-[180px] flex-col justify-end overflow-hidden bg-zinc-950 p-5"
+                  className="relative flex min-h-[180px] flex-col justify-end overflow-hidden bg-zinc-100 p-5"
                 >
                   {imageUrl && (
                     <>
@@ -133,8 +134,12 @@ export default async function SobreNosotrosPage() {
                   )}
                   <div className="relative">
                     <span className="text-xl">{card.icon}</span>
-                    <p className="mt-2 text-base font-bold text-white">{card.title}</p>
-                    <p className="mt-1 text-sm text-zinc-300">{card.text}</p>
+                    <p className={`mt-2 text-base font-bold ${imageUrl ? "text-white" : "text-zinc-900"}`}>
+                      {card.title}
+                    </p>
+                    <p className={`mt-1 text-sm ${imageUrl ? "text-zinc-200" : "text-zinc-600"}`}>
+                      {card.text}
+                    </p>
                   </div>
                 </div>
               );
@@ -145,10 +150,24 @@ export default async function SobreNosotrosPage() {
             <p className="mb-3 text-xs font-semibold tracking-[0.2em] text-zinc-500 uppercase">
               Nuestra ubicación
             </p>
-            <div className="flex aspect-video w-full items-center justify-center rounded-lg border border-dashed border-zinc-700 bg-zinc-950 text-sm text-zinc-500">
-              Mapa pendiente — falta la dirección o el enlace de Google Maps
-              del local.
+            <div className="overflow-hidden rounded-lg border border-zinc-200">
+              <iframe
+                title="Ubicación de la tienda"
+                src={`https://www.google.com/maps?q=${encodeURIComponent(STORE_ADDRESS)}&output=embed`}
+                className="aspect-video w-full"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
             </div>
+            <p className="mt-3 text-sm text-zinc-500">{STORE_ADDRESS}</p>
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(STORE_ADDRESS)}`}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-1 inline-block text-sm font-medium text-sky-600 underline"
+            >
+              Cómo llegar
+            </a>
           </div>
         </div>
       </section>
