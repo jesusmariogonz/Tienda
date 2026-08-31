@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { listActiveProducts } from "@/server/services/catalog";
 import { appName } from "@/lib/config";
 import { CatalogFilters } from "@/components/catalog-filters";
@@ -29,18 +30,27 @@ export default async function Home({
 
   return (
     <div className="flex flex-col">
-      <section className="flex flex-col items-start justify-center gap-4 bg-black px-4 py-16 sm:px-6 sm:py-24">
-        <h1 className="max-w-2xl text-4xl leading-[0.95] font-extrabold tracking-tighter text-white uppercase italic sm:text-6xl">
-          Mismo estilo,
+      <section className="relative flex flex-col items-start justify-center gap-4 overflow-hidden bg-black px-4 py-16 sm:px-6 sm:py-24">
+        <Image
+          src="/hero-banner.jpg"
+          alt=""
+          fill
+          priority
+          className="object-cover"
+          sizes="100vw"
+        />
+        <div className="absolute inset-0 bg-black/55" />
+        <h1 className="relative max-w-2xl text-4xl leading-[0.95] font-extrabold tracking-tighter text-white uppercase italic sm:text-6xl">
+          El estilo que quieres.
           <br />
-          diferente precio
+          El precio que mereces.
         </h1>
-        <p className="max-w-md text-sm text-zinc-400 sm:text-base">
+        <p className="relative max-w-md text-sm text-zinc-200 sm:text-base">
           Dupes de ropa deportiva y streetwear, hechos para moverse contigo.
         </p>
         <Link
           href="#catalogo"
-          className="mt-2 rounded-full bg-white px-6 py-3 text-sm font-bold tracking-wide text-black uppercase"
+          className="relative mt-2 rounded-full bg-white px-6 py-3 text-sm font-bold tracking-wide text-black uppercase"
         >
           Ver colección
         </Link>
