@@ -10,7 +10,6 @@ import { STORE_PICKUP_ADDRESS } from "@/lib/config";
 
 type Provider = "stripe" | "mercadopago" | "demo";
 
-const DEMO_CHECKOUT_ENABLED = process.env.NEXT_PUBLIC_DEMO_CHECKOUT === "true";
 const REMEMBER_KEY = "tienda-checkout-remember";
 
 type ShippingRate = {
@@ -531,19 +530,6 @@ export default function CheckoutPage() {
                 </span>
                 <span className="text-[10px] text-zinc-400">y más</span>
               </div>
-              {DEMO_CHECKOUT_ENABLED && (
-                <button
-                  type="button"
-                  onClick={() => setProvider("demo")}
-                  className={`mt-2 w-full rounded-md border border-dashed px-3 py-2 text-sm ${
-                    provider === "demo"
-                      ? "border-amber-600 bg-amber-50 text-amber-800"
-                      : "border-zinc-300 text-zinc-500"
-                  }`}
-                >
-                  Compra de prueba (sin cobro real)
-                </button>
-              )}
             </section>
 
             {error && (
