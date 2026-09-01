@@ -581,17 +581,19 @@ export default function CheckoutPage() {
             <ul className="flex max-h-72 flex-col gap-3 overflow-y-auto lg:max-h-none">
               {items.map((item) => (
                 <li key={item.variantId} className="flex gap-3">
-                  <div className="relative h-16 w-14 shrink-0 overflow-hidden rounded-md bg-zinc-100">
-                    {item.image && (
-                      <Image
-                        src={item.image}
-                        alt={item.productName}
-                        fill
-                        className="object-cover"
-                        sizes="56px"
-                        quality={90}
-                      />
-                    )}
+                  <div className="relative h-16 w-14 shrink-0">
+                    <div className="relative h-full w-full overflow-hidden rounded-md bg-zinc-100">
+                      {item.image && (
+                        <Image
+                          src={item.image}
+                          alt={item.productName}
+                          fill
+                          className="object-cover"
+                          sizes="56px"
+                          quality={90}
+                        />
+                      )}
+                    </div>
                     <span className="absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-sky-600 px-1 text-[10px] font-bold text-white">
                       {item.quantity}
                     </span>
