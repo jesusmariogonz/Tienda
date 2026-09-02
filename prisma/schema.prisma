@@ -401,3 +401,17 @@ model PageView {
 
   @@index([createdAt])
 }
+
+// ---------- Cart-wide wholesale (mayoreo) ----------
+
+// Singleton (id always "default"). Replaces the old per-product wholesale
+// checkbox: the owner wants the discount to trigger off the TOTAL number of
+// pieces in the cart (any mix of products/colors/sizes), not requiring N
+// units of one single model.
+model WholesaleSettings {
+  id              String  @id @default("default")
+  minQty          Int     @default(8)
+  discountPercent Decimal @default(10) @db.Decimal(5, 2)
+
+  updatedAt DateTime @updatedAt
+}

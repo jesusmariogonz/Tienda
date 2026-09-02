@@ -3,10 +3,13 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useCart, cartTotal, cartWeightKg } from "@/store/cart";
+import { useCart, cartTotal, cartWeightKg, cartQuantity } from "@/store/cart";
 import { formatPrice } from "@/lib/money";
 import { useCartStockSync } from "@/hooks/use-cart-stock-sync";
+import { useWholesaleSettings } from "@/hooks/use-wholesale-settings";
+import { computeCartWholesaleDiscount } from "@/lib/wholesale";
 import { STORE_PICKUP_ADDRESS } from "@/lib/config";
+import { WholesaleProgress } from "@/components/wholesale-progress";
 
 type Provider = "stripe" | "mercadopago" | "demo";
 
@@ -40,6 +43,9 @@ export default function CheckoutPage() {
   const router = useRouter();
   const items = useCart((s) => s.items);
   const subtotal = cartTotal(items);
+  const totalQty = cartQuantity(items);
+  const wholesaleSettings = useWholesaleSettings();
+  const wholesaleDiscount = computeCartWholesaleDiscount(subtotal, totalQty, wholesaleSettings);
   const weightKg = cartWeightKg(items);
   const stockNotes = useCartStockSync();
 
@@ -172,7 +178,8 @@ export default function CheckoutPage() {
   >(null);
   const [checkingCoupon, setCheckingCoupon] = useState(false);
 
-  const discount = couponStatus && "discount" in couponStatus ? couponStatus.discount : 0;
+  const couponDiscount = couponStatus && "discount" in couponStatus ? couponStatus.discount : 0;
+  const discount = couponDiscount + wholesaleDiscount;
   const total = Math.max(0, subtotal - discount) + (pickup ? 0 : (shipping ?? 0));
 
   if (items.length === 0) {
@@ -564,6 +571,10 @@ export default function CheckoutPage() {
               {items.reduce((n, i) => n + i.quantity, 0) === 1 ? "" : "s"}
             </h2>
 
+            <div className="mb-4">
+              <WholesaleProgress totalQuantity={totalQty} subtotal={subtotal} />
+            </div>
+
             <ul className="flex max-h-72 flex-col gap-3 overflow-y-auto lg:max-h-none">
               {items.map((item) => (
                 <li key={item.variantId} className="flex gap-3">
@@ -633,10 +644,16 @@ export default function CheckoutPage() {
                 <span>Subtotal</span>
                 <span>{formatPrice(subtotal)}</span>
               </div>
-              {discount > 0 && (
+              {couponDiscount > 0 && (
                 <div className="flex items-center justify-between text-sm text-green-700">
-                  <span>Descuento</span>
-                  <span>-{formatPrice(discount)}</span>
+                  <span>Cupón</span>
+                  <span>-{formatPrice(couponDiscount)}</span>
+                </div>
+              )}
+              {wholesaleDiscount > 0 && (
+                <div className="flex items-center justify-between text-sm text-sky-700">
+                  <span>Descuento mayoreo</span>
+                  <span>-{formatPrice(wholesaleDiscount)}</span>
                 </div>
               )}
               <div>

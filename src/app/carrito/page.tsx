@@ -4,8 +4,11 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCart, cartTotal } from "@/store/cart";
+import { useCart, cartTotal, cartQuantity } from "@/store/cart";
 import { formatPrice } from "@/lib/money";
+import { useWholesaleSettings } from "@/hooks/use-wholesale-settings";
+import { computeCartWholesaleDiscount } from "@/lib/wholesale";
+import { WholesaleProgress } from "@/components/wholesale-progress";
 
 export default function CartPage() {
   const router = useRouter();
@@ -14,6 +17,9 @@ export default function CartPage() {
   const removeItem = useCart((s) => s.removeItem);
 
   const subtotal = cartTotal(items);
+  const totalQty = cartQuantity(items);
+  const wholesaleSettings = useWholesaleSettings();
+  const wholesaleDiscount = computeCartWholesaleDiscount(subtotal, totalQty, wholesaleSettings);
   const [shipping, setShipping] = useState<number | null>(null);
 
   useEffect(() => {
@@ -24,7 +30,7 @@ export default function CartPage() {
       .catch(() => setShipping(null));
   }, [subtotal, items.length]);
 
-  const total = subtotal + (shipping ?? 0);
+  const total = Math.max(0, subtotal - wholesaleDiscount) + (shipping ?? 0);
 
   if (items.length === 0) {
     return (
@@ -43,7 +49,11 @@ export default function CartPage() {
   return (
     <main className="flex-1 px-4 py-6 sm:px-6">
       <div className="mx-auto max-w-2xl">
-        <h1 className="mb-6 text-xl font-semibold">Carrito</h1>
+        <h1 className="mb-4 text-xl font-semibold">Carrito</h1>
+
+        <div className="mb-6">
+          <WholesaleProgress totalQuantity={totalQty} subtotal={subtotal} />
+        </div>
 
         <ul className="flex flex-col gap-4">
           {items.map((item) => (
@@ -114,6 +124,12 @@ export default function CartPage() {
             <span>Subtotal</span>
             <span>{formatPrice(subtotal)}</span>
           </div>
+          {wholesaleDiscount > 0 && (
+            <div className="flex items-center justify-between text-sm text-sky-700">
+              <span>Descuento mayoreo</span>
+              <span>-{formatPrice(wholesaleDiscount)}</span>
+            </div>
+          )}
           <div className="flex items-center justify-between text-sm text-zinc-500">
             <span>Envío</span>
             <span>

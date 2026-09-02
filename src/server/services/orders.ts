@@ -4,6 +4,8 @@ import { checkLowStockAndAlert, sendNewOrderAdminAlert, sendOrderConfirmationEma
 import { resolveShippingCost, type ShippingSelection } from "./shipping";
 import { saveSkydropxQuote } from "./shipments";
 import { recordOnlineSaleInLoyverse } from "./loyverse";
+import { getWholesaleSettings } from "./wholesale-settings";
+import { computeCartWholesaleDiscount } from "@/lib/wholesale";
 
 export type CheckoutItemInput = {
   variantId: string;
@@ -97,9 +99,17 @@ export async function createPendingOrder(
   let couponId: string | undefined;
   if (couponCode) {
     const { coupon, discount } = await resolveCoupon(couponCode, subtotal);
-    discountAmount = discount;
+    discountAmount += discount;
     couponId = coupon.id;
   }
+
+  // Cart-wide wholesale: computed server-side off the actual items/settings
+  // (never trusting a client-sent amount) so it can't be tampered with —
+  // triggers off total pieces across the whole cart, any mix of
+  // products/colors/sizes, not N units of one single model.
+  const totalQuantity = items.reduce((sum, i) => sum + i.quantity, 0);
+  const wholesaleSettings = await getWholesaleSettings();
+  discountAmount += computeCartWholesaleDiscount(subtotal, totalQuantity, wholesaleSettings);
 
   const shipping = pickupInStore
     ? { cost: 0, quotationId: null, rates: null }

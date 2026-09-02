@@ -69,6 +69,10 @@ export function cartTotal(items: CartItem[]) {
   return items.reduce((sum, i) => sum + i.price * i.quantity, 0);
 }
 
+export function cartQuantity(items: CartItem[]) {
+  return items.reduce((sum, i) => sum + i.quantity, 0);
+}
+
 export function cartWeightKg(items: CartItem[]) {
   return items.reduce(
     (sum, i) => sum + (i.weightKg ?? DEFAULT_ITEM_WEIGHT_KG) * i.quantity,

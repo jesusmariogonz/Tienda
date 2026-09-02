@@ -3,10 +3,13 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useCart, cartTotal } from "@/store/cart";
+import { useCart, cartTotal, cartQuantity } from "@/store/cart";
 import { useCartUI } from "@/store/cart-ui";
 import { formatPrice } from "@/lib/money";
 import { useCartStockSync } from "@/hooks/use-cart-stock-sync";
+import { useWholesaleSettings } from "@/hooks/use-wholesale-settings";
+import { computeCartWholesaleDiscount } from "@/lib/wholesale";
+import { WholesaleProgress } from "@/components/wholesale-progress";
 
 export function CartDrawer() {
   const router = useRouter();
@@ -20,6 +23,9 @@ export function CartDrawer() {
 
   const [freeOverAmount, setFreeOverAmount] = useState<number | null>(null);
   const total = cartTotal(items);
+  const totalQty = cartQuantity(items);
+  const wholesaleSettings = useWholesaleSettings();
+  const wholesaleDiscount = computeCartWholesaleDiscount(total, totalQty, wholesaleSettings);
 
   useEffect(() => setMounted(true), []);
 
@@ -96,6 +102,12 @@ export function CartDrawer() {
           </div>
         )}
 
+        {items.length > 0 && (
+          <div className="border-b border-zinc-100 px-4 py-3">
+            <WholesaleProgress totalQuantity={totalQty} subtotal={total} />
+          </div>
+        )}
+
         {items.length === 0 ? (
           <div className="flex flex-1 items-center justify-center px-4 text-center text-sm text-zinc-500">
             Tu carrito está vacío.
@@ -162,9 +174,15 @@ export function CartDrawer() {
 
         {items.length > 0 && (
           <div className="border-t border-zinc-200 px-4 py-4">
+            {wholesaleDiscount > 0 && (
+              <div className="mb-1.5 flex items-center justify-between text-sm text-sky-700">
+                <span>Descuento mayoreo</span>
+                <span>-{formatPrice(wholesaleDiscount)}</span>
+              </div>
+            )}
             <div className="mb-3 flex items-center justify-between text-base font-medium">
               <span>Subtotal</span>
-              <span>{formatPrice(total)}</span>
+              <span>{formatPrice(Math.max(0, total - wholesaleDiscount))}</span>
             </div>
             <button
               type="button"
