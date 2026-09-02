@@ -161,7 +161,7 @@ const READY_RATE_STATUSES = new Set(["approved", "price_found_internal", "price_
 // Only these carriers are offered/booked — the store owner only wants to
 // deal with the ones they actually trust/have a relationship with, even
 // though Skydropx quotes many more.
-const ALLOWED_CARRIERS = ["estafeta", "fedex", "dhl"];
+const ALLOWED_CARRIERS = ["estafeta", "dhl"];
 
 function isAllowedCarrier(providerName: string) {
   const normalized = providerName.toLowerCase();
