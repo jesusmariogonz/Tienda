@@ -179,7 +179,12 @@ export default function CheckoutPage() {
   const [checkingCoupon, setCheckingCoupon] = useState(false);
 
   const couponDiscount = couponStatus && "discount" in couponStatus ? couponStatus.discount : 0;
-  const discount = couponDiscount + wholesaleDiscount;
+  // Never stack: only the larger of coupon vs. wholesale discount applies
+  // (matches the server logic in createPendingOrder) — otherwise a coupon
+  // plus 8+ piezas could zero out the order.
+  const discount = Math.max(couponDiscount, wholesaleDiscount);
+  const wholesaleApplies = wholesaleDiscount > 0 && wholesaleDiscount >= couponDiscount;
+  const couponApplies = couponDiscount > 0 && couponDiscount > wholesaleDiscount;
   const total = Math.max(0, subtotal - discount) + (pickup ? 0 : (shipping ?? 0));
 
   if (items.length === 0) {
@@ -633,8 +638,10 @@ export default function CheckoutPage() {
                 <p className="mt-1 text-xs text-red-600">{couponStatus.error}</p>
               )}
               {couponStatus && "discount" in couponStatus && (
-                <p className="mt-1 text-xs text-green-700">
-                  Cupón aplicado: -{formatPrice(couponStatus.discount)}
+                <p className={`mt-1 text-xs ${couponApplies ? "text-green-700" : "text-amber-700"}`}>
+                  {couponApplies
+                    ? `Cupón aplicado: -${formatPrice(couponStatus.discount)}`
+                    : `Cupón válido, pero no se aplica: el descuento de mayoreo ya es mayor (-${formatPrice(couponStatus.discount)} vs -${formatPrice(wholesaleDiscount)}).`}
                 </p>
               )}
             </div>
@@ -644,13 +651,13 @@ export default function CheckoutPage() {
                 <span>Subtotal</span>
                 <span>{formatPrice(subtotal)}</span>
               </div>
-              {couponDiscount > 0 && (
+              {couponApplies && (
                 <div className="flex items-center justify-between text-sm text-green-700">
                   <span>Cupón</span>
                   <span>-{formatPrice(couponDiscount)}</span>
                 </div>
               )}
-              {wholesaleDiscount > 0 && (
+              {wholesaleApplies && (
                 <div className="flex items-center justify-between text-sm text-sky-700">
                   <span>Descuento mayoreo</span>
                   <span>-{formatPrice(wholesaleDiscount)}</span>

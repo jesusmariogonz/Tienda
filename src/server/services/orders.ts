@@ -95,11 +95,11 @@ export async function createPendingOrder(
     });
   }
 
-  let discountAmount = 0;
+  let couponDiscount = 0;
   let couponId: string | undefined;
   if (couponCode) {
     const { coupon, discount } = await resolveCoupon(couponCode, subtotal);
-    discountAmount += discount;
+    couponDiscount = discount;
     couponId = coupon.id;
   }
 
@@ -109,7 +109,12 @@ export async function createPendingOrder(
   // products/colors/sizes, not N units of one single model.
   const totalQuantity = items.reduce((sum, i) => sum + i.quantity, 0);
   const wholesaleSettings = await getWholesaleSettings();
-  discountAmount += computeCartWholesaleDiscount(subtotal, totalQuantity, wholesaleSettings);
+  const wholesaleDiscount = computeCartWholesaleDiscount(subtotal, totalQuantity, wholesaleSettings);
+
+  // Never stack: a coupon and the wholesale discount don't add together
+  // (that could zero out an order with a big enough coupon + 8 pieces) —
+  // only the larger of the two applies.
+  const discountAmount = Math.max(couponDiscount, wholesaleDiscount);
 
   const shipping = pickupInStore
     ? { cost: 0, quotationId: null, rates: null }
