@@ -9,6 +9,7 @@ import { formatPrice } from "@/lib/money";
 import { useWholesaleSettings } from "@/hooks/use-wholesale-settings";
 import { computeCartWholesaleDiscount } from "@/lib/wholesale";
 import { WholesaleProgress } from "@/components/wholesale-progress";
+import { TrashIcon } from "@/components/trash-icon";
 
 export default function CartPage() {
   const router = useRouter();
@@ -102,19 +103,20 @@ export default function CartPage() {
                     >
                       +
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => removeItem(item.variantId)}
+                      aria-label="Quitar del carrito"
+                      className="ml-1 flex h-7 w-7 items-center justify-center rounded-full text-zinc-400 hover:text-red-600"
+                    >
+                      <TrashIcon />
+                    </button>
                   </div>
                   <p className="text-sm font-medium">
                     {formatPrice(item.price * item.quantity)}
                   </p>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => removeItem(item.variantId)}
-                className="self-start text-xs text-zinc-400 underline"
-              >
-                Quitar
-              </button>
             </li>
           ))}
         </ul>
