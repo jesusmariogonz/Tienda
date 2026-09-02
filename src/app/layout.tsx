@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { appName } from "@/lib/config";
 import { SiteHeader } from "@/components/site-header";
@@ -46,6 +47,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <SiteFooter />
         <CartDrawer />
         <WhatsappButton />
+        <Analytics />
       </body>
     </html>
   );
