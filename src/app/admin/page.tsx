@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { listLowStock } from "@/server/services/inventory";
 import { getDashboardStats, listPendingOrders, listRecentActivity } from "@/server/services/dashboard";
+import { getVisitStats } from "@/server/services/analytics";
 import { formatPrice } from "@/lib/money";
 import { dismissPendingOrderAction, dismissAllPendingOrdersAction } from "./actions";
 import { MarkPaidButton } from "@/components/mark-paid-button";
@@ -24,12 +25,14 @@ function timeAgo(date: Date) {
 }
 
 export default async function AdminDashboard() {
-  const [stats, lowStock, pendingOrders, recentActivity] = await Promise.all([
+  const [stats, lowStock, pendingOrders, recentActivity, visits] = await Promise.all([
     getDashboardStats(),
     listLowStock(),
     listPendingOrders(),
     listRecentActivity(),
+    getVisitStats(),
   ]);
+  const maxDayCount = Math.max(1, ...visits.byDay.map((d) => d.count));
 
   return (
     <div className="flex flex-col gap-8">
@@ -67,6 +70,56 @@ export default async function AdminDashboard() {
         <div className="rounded-lg border border-zinc-200 p-4">
           <p className="text-2xl font-semibold">{formatPrice(stats.inventoryValue)}</p>
           <p className="text-sm text-zinc-500">Valor del inventario</p>
+        </div>
+        <div className="rounded-lg border border-zinc-200 p-4">
+          <p className="text-2xl font-semibold">{visits.todayCount}</p>
+          <p className="text-sm text-zinc-500">Visitas hoy</p>
+        </div>
+        <div className="rounded-lg border border-zinc-200 p-4">
+          <p className="text-2xl font-semibold">{visits.weekCount}</p>
+          <p className="text-sm text-zinc-500">Visitas últimos 7 días</p>
+        </div>
+      </div>
+
+      <div className="grid gap-6 sm:grid-cols-2">
+        <div>
+          <h2 className="mb-3 text-sm font-medium">Visitas por día (7 días)</h2>
+          {visits.byDay.length === 0 ? (
+            <p className="text-sm text-zinc-400">Sin visitas registradas todavía.</p>
+          ) : (
+            <div className="flex items-end gap-2 rounded-lg border border-zinc-200 p-4">
+              {visits.byDay.map((d) => (
+                <div key={d.day.toISOString()} className="flex w-10 shrink-0 flex-col items-center gap-1">
+                  <div className="flex h-24 w-full items-end">
+                    <div
+                      className="w-full rounded-t bg-sky-600"
+                      style={{ height: `${Math.max(4, (d.count / maxDayCount) * 100)}%` }}
+                      title={`${d.count} visitas`}
+                    />
+                  </div>
+                  <span className="text-[10px] text-zinc-500">
+                    {d.day.toLocaleDateString("es-MX", { day: "2-digit", month: "short" })}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div>
+          <h2 className="mb-3 text-sm font-medium">Páginas más vistas (7 días)</h2>
+          {visits.topPages.length === 0 ? (
+            <p className="text-sm text-zinc-400">Sin visitas registradas todavía.</p>
+          ) : (
+            <div className="flex flex-col divide-y divide-zinc-200 rounded-lg border border-zinc-200">
+              {visits.topPages.map((p) => (
+                <div key={p.path} className="flex items-center justify-between px-4 py-2 text-sm">
+                  <span className="truncate text-zinc-700">{p.path}</span>
+                  <span className="shrink-0 font-medium text-zinc-900">{p.count}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

@@ -8,6 +8,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { WhatsappButton } from "@/components/whatsapp-button";
 import { CartDrawer } from "@/components/cart-drawer";
 import { WholesaleMarquee } from "@/components/wholesale-marquee";
+import { VisitTracker } from "@/components/visit-tracker";
 import { listCategoriesWithProducts, listWholesaleProducts } from "@/server/services/catalog";
 
 const geistSans = Geist({
@@ -47,6 +48,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <SiteFooter />
         <CartDrawer />
         <WhatsappButton />
+        <VisitTracker />
         <Analytics />
       </body>
     </html>

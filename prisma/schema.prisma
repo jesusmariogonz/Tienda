@@ -391,3 +391,13 @@ model Review {
 
   @@index([approved, createdAt])
 }
+
+// ---------- Site traffic (shown in-app, no separate dashboard needed) ----------
+
+model PageView {
+  id        String   @id @default(cuid())
+  path      String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
